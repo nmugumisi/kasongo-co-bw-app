@@ -1,6 +1,6 @@
 import { getCredentials } from '../utils/auth';
 
-const BASE_URL = 'https://kasongo.co.bw/wp-json';
+const BASE_URL = 'https://ghetto.co.bw/wp-json';
 
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
