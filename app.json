@@ -47,6 +47,11 @@
       ],
       "expo-sharing"
     ],
-    "extra": {}
+    "extra": {
+      "eas": {
+        "projectId": "045b4ba1-9383-4045-85bb-8f43985f7c96"
+      }
+    },
+    "owner": "nmugumisi"
   }
 }
