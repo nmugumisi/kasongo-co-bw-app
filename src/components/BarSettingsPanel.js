@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Switch, ScrollView, StyleSheet
 import { saveSettings } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import BiometricToggle from './BiometricToggle';
 
 export default function BarSettingsPanel() {
   const { settings, refreshSettings } = useAuth();
@@ -51,6 +52,8 @@ export default function BarSettingsPanel() {
       <TouchableOpacity style={[styles.button, { backgroundColor: c.accent }]} onPress={handleSave} disabled={saving}>
         <Text style={[styles.buttonText, { color: c.accentInk }]}>{saving ? 'Saving…' : 'Save bar profile'}</Text>
       </TouchableOpacity>
+
+      <BiometricToggle />
     </ScrollView>
   );
 }

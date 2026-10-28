@@ -26,7 +26,6 @@ export default function BiometricLockScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>{'▤'}</Text>
       <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
       <Text style={styles.sub}>{user?.name}</Text>
       <Text style={[styles.msg, failed && styles.msgBad]}>
@@ -46,7 +45,6 @@ export default function BiometricLockScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  logo: { fontSize: 34, color: c.accent, marginBottom: 6 },
   title: { fontSize: 22, fontWeight: '700', color: c.text, textAlign: 'center' },
   sub: { fontSize: 14, color: c.muted, marginTop: 2 },
   msg: { fontSize: 14, color: c.muted, marginTop: 24, marginBottom: 18, textAlign: 'center', minHeight: 20 },
@@ -54,5 +52,5 @@ const styles = StyleSheet.create({
   button: { width: '100%', maxWidth: 340, backgroundColor: c.accent, borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center' },
   buttonText: { fontWeight: '700', fontSize: 16, color: c.accentInk },
   link: { marginTop: 26 },
-  linkText: { color: c.muted, fontSize: 13, textDecorationLine: 'underline' },
+  linkText: { color: c.muted, fontSize: 14, fontWeight: '600' },
 });

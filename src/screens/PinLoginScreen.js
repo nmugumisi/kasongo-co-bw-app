@@ -106,7 +106,6 @@ export default function PinLoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>▤</Text>
         <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
 
         {mode === 'pin' ? (
@@ -178,15 +177,14 @@ export default function PinLoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.bg },
   container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg, paddingHorizontal: 24, paddingVertical: 40 },
-  logo: { fontSize: 34, color: c.accent, marginBottom: 6 },
   title: { fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 4, textAlign: 'center' },
   msg: { fontSize: 14, color: c.muted, marginTop: 6, marginBottom: 18, textAlign: 'center', minHeight: 20 },
   msgBad: { color: c.neg, fontWeight: '600' },
   dots: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: c.muted },
   dotFilled: { backgroundColor: c.accent, borderColor: c.accent },
-  switchLink: { marginTop: 26 },
-  switchLinkText: { color: c.muted, fontSize: 13, textDecorationLine: 'underline' },
+  switchLink: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 12 },
+  switchLinkText: { color: c.muted, fontSize: 14, fontWeight: '600' },
   form: { width: '100%', maxWidth: 340, alignItems: 'center' },
   input: {
     width: '100%',

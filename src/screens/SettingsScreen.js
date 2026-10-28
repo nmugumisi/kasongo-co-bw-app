@@ -8,8 +8,10 @@ import { IconBack } from '../theme/zbsIcons';
 import BarSettingsPanel from '../components/BarSettingsPanel';
 import CashiersPanel from '../components/CashiersPanel';
 import AccountPanel from '../components/AccountPanel';
+import ItemsPanel from '../components/ItemsPanel';
+import ReportsPanel from '../components/ReportsPanel';
 
-const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts', account: 'Your account' };
+const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts', items: 'Stock items', reports: 'Variance report', account: 'Your account' };
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -17,7 +19,16 @@ export default function SettingsScreen() {
   const c = useZbsColors();
   const { canManage } = useAuth();
   const tabs = useMemo(
-    () => (canManage ? [{ key: 'bar', label: 'Bar' }, { key: 'cashiers', label: 'Cashiers' }, { key: 'account', label: 'Account' }] : []),
+    // Manager/admin accounts themselves are managed in wp-admin, so there's no Account tab for them.
+    () =>
+      canManage
+        ? [
+            { key: 'bar', label: 'Bar' },
+            { key: 'cashiers', label: 'Cashiers' },
+            { key: 'items', label: 'Items' },
+            { key: 'reports', label: 'Reports' },
+          ]
+        : [],
     [canManage]
   );
   const [tab, setTab] = useState(canManage ? 'bar' : 'account');
@@ -49,7 +60,17 @@ export default function SettingsScreen() {
         </View>
       ) : null}
 
-      {tab === 'bar' ? <BarSettingsPanel /> : tab === 'cashiers' ? <CashiersPanel /> : <AccountPanel />}
+      {tab === 'bar' ? (
+        <BarSettingsPanel />
+      ) : tab === 'cashiers' ? (
+        <CashiersPanel />
+      ) : tab === 'items' ? (
+        <ItemsPanel />
+      ) : tab === 'reports' ? (
+        <ReportsPanel />
+      ) : (
+        <AccountPanel />
+      )}
     </View>
   );
 }

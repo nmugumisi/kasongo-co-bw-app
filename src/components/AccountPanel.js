@@ -5,20 +5,8 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 
 export default function AccountPanel() {
-  const { user, settings, logOut, canManage, biometricSupported, biometricEnabled, setBiometricEnabled, authenticate } = useAuth();
+  const { user, settings, logOut } = useAuth();
   const c = useZbsColors();
-  const [bioError, setBioError] = useState(null);
-
-  async function toggleBiometric(next) {
-    setBioError(null);
-    if (!next) {
-      await setBiometricEnabled(false);
-      return;
-    }
-    // Confirm it actually works on this device before turning it on, so nobody locks themselves out.
-    if (await authenticate('Confirm to turn on biometric unlock')) await setBiometricEnabled(true);
-    else setBioError("Couldn't confirm with Face ID / fingerprint, so it's still off.");
-  }
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState('');
@@ -51,34 +39,9 @@ export default function AccountPanel() {
         <Text style={styles.sub}>{settings.bar_name}</Text>
       </View>
 
-      {canManage ? (
-        <View style={[styles.card, { marginTop: 10 }]}>
-          <View style={styles.bioRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.bioTitle}>Biometric unlock</Text>
-              <Text style={styles.bioHint}>
-                {biometricSupported
-                  ? 'Ask for Face ID / fingerprint every time the app opens or comes back from the background.'
-                  : 'Set up Face ID or a fingerprint in your phone settings to use this.'}
-              </Text>
-            </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={toggleBiometric}
-              disabled={!biometricSupported}
-              trackColor={{ true: c.accent, false: c.card2 }}
-              thumbColor={c.muted}
-            />
-          </View>
-          {bioError ? <Text style={styles.error}>{bioError}</Text> : null}
-        </View>
-      ) : null}
-
       <TouchableOpacity style={styles.signOutBtn} onPress={logOut}>
         <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
-
-      <Text style={styles.sectionH}>Danger zone</Text>
 
       {done ? (
         <View style={[styles.card, { backgroundColor: c.posBg, borderColor: 'transparent' }]}>
@@ -137,13 +100,9 @@ function makeStyles(c) {
     card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 16 },
     name: { fontSize: 16, fontWeight: '700', color: c.text },
     sub: { fontSize: 13, color: c.muted, marginTop: 2 },
-    bioRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    bioTitle: { fontSize: 15, fontWeight: '600', color: c.text },
-    bioHint: { fontSize: 12, color: c.muted, marginTop: 3, lineHeight: 17 },
     signOutBtn: { height: 48, borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
     signOutText: { fontSize: 15, fontWeight: '600', color: c.text },
-    sectionH: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, color: c.muted, marginTop: 26, marginBottom: 10 },
-    dangerLink: { paddingVertical: 10 },
+    dangerLink: { paddingVertical: 10, marginTop: 20 },
     dangerLinkText: { fontSize: 15, fontWeight: '600' },
     deleteTitle: { fontSize: 13, fontWeight: '700', color: c.text },
     deleteBody: { fontSize: 13, color: c.muted, marginTop: 4, lineHeight: 19 },

@@ -167,6 +167,28 @@ export function deleteCashier(id) {
   return request(`/zbs/v1/cashiers/${id}`, { method: 'DELETE' });
 }
 
+// --- zbs/v1: stock items + reports (managers only) ---
+
+export function getItems() {
+  return request('/zbs/v1/items');
+}
+
+export function createItem({ name, group, price }) {
+  return request('/zbs/v1/items', { method: 'POST', body: { name, group, price } });
+}
+
+export function updateItem(id, { name, group, price, active } = {}) {
+  return request(`/zbs/v1/items/${id}`, { method: 'POST', body: { name, group, price, active } });
+}
+
+export function deleteItem(id) {
+  return request(`/zbs/v1/items/${id}`, { method: 'DELETE' });
+}
+
+export function getReport({ from, to }) {
+  return request('/zbs/v1/report', { query: { from, to } });
+}
+
 // --- zbs/v1: account ---
 
 export function requestAccountDeletion({ message } = {}) {
