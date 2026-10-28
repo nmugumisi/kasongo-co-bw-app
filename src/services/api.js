@@ -1,3 +1,5 @@
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { getCredentials } from '../utils/auth';
 
 const BASE_URL = 'https://ghetto.co.bw/wp-json';
@@ -187,6 +189,27 @@ export function deleteItem(id) {
 
 export function getReport({ from, to }) {
   return request('/zbs/v1/report', { query: { from, to } });
+}
+
+const MIME = {
+  xlsx: { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', UTI: 'org.openxmlformats.spreadsheetml.sheet' },
+  pdf: { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
+};
+
+/** Downloads the variance report as Excel or PDF, then opens the phone's share/open sheet for it. */
+export async function shareReportExport({ from, to, only, format }) {
+  const params = new URLSearchParams({ from, to, only: only ? '1' : '0', format });
+  const file = new File(Paths.cache, `stock-variance-${from}-to-${to}.${format}`);
+  try {
+    await File.downloadFileAsync(`${BASE_URL}/zbs/v1/export/report?${params}`, file, {
+      headers: await authHeader(),
+      idempotent: true,
+    });
+  } catch {
+    throw new Error("Couldn't download the file. Check your connection and try again.");
+  }
+  if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing files isn\'t available on this phone.');
+  await Sharing.shareAsync(file.uri, { ...MIME[format], dialogTitle: file.name });
 }
 
 // --- zbs/v1: account ---

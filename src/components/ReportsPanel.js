@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Platform, ActivityIndicator, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getReport } from '../services/api';
+import { getReport, shareReportExport } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { fmt, signed, money, units, titleCase } from '../utils/format';
+import { IconXls, IconPdf } from '../theme/zbsIcons';
 
 function iso(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -43,6 +44,8 @@ export default function ReportsPanel() {
   const [error, setError] = useState(null);
   const [onlyVar, setOnlyVar] = useState(true);
   const [picking, setPicking] = useState(null); // 'from' | 'to' | null
+  const [downloading, setDownloading] = useState(null); // 'xlsx' | 'pdf' | null
+  const [dlError, setDlError] = useState(null);
   const styles = makeStyles(c);
 
   useEffect(() => {
@@ -73,6 +76,18 @@ export default function ReportsPanel() {
     let t = which === 'to' ? val : to;
     if (f > t) [f, t] = [t, f];
     setRange([f, t]);
+  }
+
+  async function download(format) {
+    setDownloading(format);
+    setDlError(null);
+    try {
+      await shareReportExport({ from, to, only: onlyVar, format });
+    } catch (e) {
+      setDlError(e.message || 'Something went wrong.');
+    } finally {
+      setDownloading(null);
+    }
   }
 
   const t = report?.totals;
@@ -168,6 +183,19 @@ export default function ReportsPanel() {
               ))}
             </View>
           )}
+
+          <View style={styles.dl}>
+            {[
+              ['xlsx', 'Excel', IconXls],
+              ['pdf', 'PDF', IconPdf],
+            ].map(([fmtKey, label, Icon]) => (
+              <TouchableOpacity key={fmtKey} style={styles.dlBtn} onPress={() => download(fmtKey)} disabled={!!downloading}>
+                {downloading === fmtKey ? <ActivityIndicator color={c.text} /> : <Icon size={18} color={c.text} />}
+                <Text style={styles.dlText}>{downloading === fmtKey ? 'Preparing…' : label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {dlError ? <Text style={styles.error}>{dlError}</Text> : null}
         </>
       )}
     </ScrollView>
@@ -210,5 +238,8 @@ function makeStyles(c) {
     repMeta: { fontSize: 12, color: c.muted, marginTop: 2 },
     repNum: { alignItems: 'flex-end' },
     repVar: { fontSize: 17, fontWeight: '700', color: c.text },
+    dl: { flexDirection: 'row', gap: 8, marginTop: 14 },
+    dlBtn: { flex: 1, flexDirection: 'row', gap: 8, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    dlText: { fontSize: 16, fontWeight: '700', color: c.text },
   });
 }
