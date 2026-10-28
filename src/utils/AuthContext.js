@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Appearance } from 'react-native';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { Appearance, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCredentials, saveCredentials, clearCredentials } from './auth';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { getCredentials, saveCredentials, clearCredentials, getBiometricEnabled, setBiometricEnabled as persistBiometricEnabled } from './auth';
 import { getSettings } from '../services/api';
 import { getJSON, setJSON, settingsCacheKey } from './offlineStore';
 
@@ -10,11 +11,27 @@ const AuthContext = createContext(null);
 const DEFAULT_SETTINGS = { bar_name: 'Bar Stock', show_values: false, currency: '' };
 const THEME_KEY = 'zbsa_theme';
 
+export async function checkBiometricSupport() {
+  try {
+    const [hasHardware, isEnrolled] = await Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()]);
+    return hasHardware && isEnrolled;
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [theme, setTheme] = useState('dark');
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const appState = useRef(AppState.currentState);
+  // The system biometric prompt itself sends the app to inactive/background on some devices;
+  // without this, unlocking would immediately re-lock.
+  const promptOpen = useRef(false);
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -48,6 +65,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    checkBiometricSupport().then(setBiometricSupported);
+  }, []);
+
+  useEffect(() => {
     getCredentials().then(async (creds) => {
       setUser(creds);
       if (creds) {
@@ -56,16 +77,61 @@ export function AuthProvider({ children }) {
         const cached = await getJSON(settingsCacheKey());
         if (cached) setSettings({ ...DEFAULT_SETTINGS, ...cached });
         refreshSettings();
+
+        const bioOn = await getBiometricEnabled();
+        setBiometricEnabledState(bioOn);
+        if (bioOn && creds.manage) setLocked(true); // require a fresh unlock every cold start, not just once
       }
       setLoading(false);
     });
   }, [refreshSettings]);
+
+  // Returning to the app from the background re-locks it, same as a cold start — otherwise
+  // biometric gating would only ever matter once, which defeats the point of "protect an
+  // unattended phone".
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      appState.current = next;
+      if (next === 'background' && !promptOpen.current && biometricEnabled && user?.manage) {
+        setLocked(true);
+      }
+    });
+    return () => sub.remove();
+  }, [biometricEnabled, user]);
+
+  const authenticate = useCallback(async (promptMessage) => {
+    promptOpen.current = true;
+    try {
+      const res = await LocalAuthentication.authenticateAsync({ promptMessage, cancelLabel: 'Cancel', disableDeviceFallback: false });
+      return res.success;
+    } catch {
+      return false;
+    } finally {
+      // Let the app settle back to 'active' before re-arming the background lock.
+      setTimeout(() => {
+        promptOpen.current = false;
+      }, 1000);
+    }
+  }, []);
+
+  const unlockWithBiometrics = useCallback(async () => {
+    const ok = await authenticate('Unlock Kasongo');
+    if (ok) setLocked(false);
+    return ok;
+  }, [authenticate]);
+
+  const setBiometricEnabled = useCallback(async (enabled) => {
+    await persistBiometricEnabled(enabled);
+    setBiometricEnabledState(enabled);
+  }, []);
 
   const logIn = useCallback(
     async (data) => {
       await saveCredentials(data);
       const creds = await getCredentials();
       setUser(creds);
+      setBiometricEnabledState(false);
+      setLocked(false);
       refreshSettings();
     },
     [refreshSettings]
@@ -75,6 +141,8 @@ export function AuthProvider({ children }) {
     await clearCredentials();
     setUser(null);
     setSettings(DEFAULT_SETTINGS);
+    setBiometricEnabledState(false);
+    setLocked(false);
   }, []);
 
   return (
@@ -88,6 +156,12 @@ export function AuthProvider({ children }) {
         refreshSettings,
         theme,
         toggleTheme,
+        biometricEnabled,
+        biometricSupported,
+        setBiometricEnabled,
+        locked,
+        unlockWithBiometrics,
+        authenticate,
         logIn,
         logOut,
       }}

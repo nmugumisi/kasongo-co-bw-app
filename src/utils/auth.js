@@ -4,6 +4,7 @@ const USERNAME_KEY = 'kasongo_username';
 const PASSWORD_KEY = 'kasongo_application_password';
 const NAME_KEY = 'kasongo_display_name';
 const MANAGE_KEY = 'kasongo_can_manage';
+const BIOMETRIC_KEY = 'kasongo_biometric_enabled';
 
 export async function saveCredentials({ username, application_password, name, manage }) {
   await SecureStore.setItemAsync(USERNAME_KEY, username ?? '');
@@ -49,5 +50,15 @@ export async function clearCredentials() {
     SecureStore.deleteItemAsync(PASSWORD_KEY),
     SecureStore.deleteItemAsync(NAME_KEY),
     SecureStore.deleteItemAsync(MANAGE_KEY),
+    SecureStore.deleteItemAsync(BIOMETRIC_KEY),
   ]);
+}
+
+/** Whether this signed-in account unlocks the app with Face ID / fingerprint instead of re-entering a password. */
+export async function getBiometricEnabled() {
+  return (await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1';
+}
+
+export async function setBiometricEnabled(enabled) {
+  await SecureStore.setItemAsync(BIOMETRIC_KEY, enabled ? '1' : '0');
 }

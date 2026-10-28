@@ -38,7 +38,13 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Kasongo to use Face ID to unlock the app."
+        }
+      ]
     ],
     "extra": {}
   }

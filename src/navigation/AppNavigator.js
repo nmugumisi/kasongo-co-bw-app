@@ -7,6 +7,7 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 
 import PinLoginScreen from '../screens/PinLoginScreen';
+import BiometricLockScreen from '../screens/BiometricLockScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SheetScreen from '../screens/SheetScreen';
 import ReviewScreen from '../screens/ReviewScreen';
@@ -15,7 +16,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  const { loading, isLoggedIn, theme } = useAuth();
+  const { loading, isLoggedIn, locked, theme } = useAuth();
   const c = useZbsColors();
 
   if (loading) {
@@ -28,6 +29,10 @@ export default function AppNavigator() {
 
   if (!isLoggedIn) {
     return <PinLoginScreen />;
+  }
+
+  if (locked) {
+    return <BiometricLockScreen />;
   }
 
   const navTheme = {
