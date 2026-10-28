@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Kasongo",
+    "slug": "kasongo-co-bw-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "primaryColor": "#C88E2A",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000",
+      "translucent": false
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "bw.co.kasongo.app"
+    },
+    "android": {
+      "package": "bw.co.kasongo.app",
+      "allowBackup": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-foreground-1024.png",
+        "backgroundColor": "#1E1B16"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/kasongo-splash.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#1E1B16"
+        }
+      ]
+    ],
+    "extra": {}
+  }
+}
