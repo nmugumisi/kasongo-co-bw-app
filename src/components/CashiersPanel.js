@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Acti
 import { useFocusEffect } from '@react-navigation/native';
 import { getCashiers, createCashier, updateCashier, deleteCashier } from '../services/api';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 
 export default function CashiersPanel() {
   const c = useZbsColors();
+  const cushion = useBottomCushion(24);
   const [cashiers, setCashiers] = useState(null);
   const [panelId, setPanelId] = useState(undefined); // undefined=closed, null=new, number=edit
   const styles = makeStyles(c);
@@ -29,7 +31,7 @@ export default function CashiersPanel() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.main}>
+      <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]}>
         <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanelId(null)}>
           <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add cashier</Text>
         </TouchableOpacity>
@@ -72,6 +74,7 @@ export default function CashiersPanel() {
 
 function CashierModal({ visible, cashier, onClose, onSaved }) {
   const c = useZbsColors();
+  const cushion = useBottomCushion(24);
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -157,7 +160,7 @@ function CashierModal({ visible, cashier, onClose, onSaved }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { paddingBottom: cushion }]} onPress={() => {}}>
           <View style={styles.grab} />
           <View style={styles.head}>
             <Text style={styles.title}>{cashier ? cashier.name : 'Add cashier'}</Text>

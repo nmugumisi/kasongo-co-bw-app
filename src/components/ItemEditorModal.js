@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import { IconPrev, IconNext, IconClose } from '../theme/zbsIcons';
 import { calc } from '../utils/calc';
 import { fmt, signed, titleCase, niceDate, hhmm } from '../utils/format';
@@ -35,6 +36,7 @@ export default function ItemEditorModal({
   onVoidReceipt,
 }) {
   const c = useZbsColors();
+  const cushion = useBottomCushion(20);
   const [idx, setIdx] = useState(0);
   const [field, setField] = useState('count');
   const [buf, setBuf] = useState('');
@@ -162,7 +164,7 @@ export default function ItemEditorModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={closeAndReset}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeAndReset}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { paddingBottom: cushion }]} onPress={() => {}}>
           <View style={styles.grab} />
           <View style={styles.head}>
             <TouchableOpacity style={styles.headIcon} disabled={idx === 0} onPress={() => moveItem(-1)}>

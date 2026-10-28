@@ -4,11 +4,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getItems, createItem, updateItem, deleteItem } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import { IconSearch, IconClose } from '../theme/zbsIcons';
 import { fmt, money, titleCase } from '../utils/format';
 
 export default function ItemsPanel() {
   const c = useZbsColors();
+  const cushion = useBottomCushion(32);
   const { settings } = useAuth();
   const [items, setItems] = useState(null);
   const [q, setQ] = useState('');
@@ -64,7 +66,7 @@ export default function ItemsPanel() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.main} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
         <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanel(null)}>
           <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add item</Text>
         </TouchableOpacity>
@@ -137,6 +139,7 @@ export default function ItemsPanel() {
 
 function ItemModal({ visible, item, groups, defaultGroup, showValues, currency, onClose, onSaved, onDeleted }) {
   const c = useZbsColors();
+  const cushion = useBottomCushion(32);
   const styles = makeStyles(c);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
@@ -205,7 +208,7 @@ function ItemModal({ visible, item, groups, defaultGroup, showValues, currency, 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { paddingBottom: cushion }]} onPress={() => {}}>
           <View style={styles.grab} />
           <View style={styles.head}>
             <View style={styles.flex1}>

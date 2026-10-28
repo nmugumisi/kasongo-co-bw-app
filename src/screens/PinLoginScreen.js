@@ -16,11 +16,13 @@ import { getOrCreateDeviceId } from '../utils/auth';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import NumericKeypad from '../components/NumericKeypad';
 import { DARK } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 
 const c = DARK;
 
 export default function PinLoginScreen() {
   const { logIn, settings } = useAuth();
+  const cushion = useBottomCushion(40);
   const isOnline = useNetworkStatus();
   const [mode, setMode] = useState('pin'); // 'pin' | 'account'
   const [pin, setPin] = useState('');
@@ -105,7 +107,7 @@ export default function PinLoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
 
         {mode === 'pin' ? (

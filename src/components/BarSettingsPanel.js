@@ -3,11 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, Switch, ScrollView, StyleSheet
 import { saveSettings } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import BiometricToggle from './BiometricToggle';
 
 export default function BarSettingsPanel() {
   const { settings, refreshSettings } = useAuth();
   const c = useZbsColors();
+  const cushion = useBottomCushion(24);
   const [barName, setBarName] = useState(settings.bar_name);
   const [currency, setCurrency] = useState(settings.currency);
   const [showValues, setShowValues] = useState(settings.show_values);
@@ -29,7 +31,7 @@ export default function BarSettingsPanel() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.main}>
+    <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]}>
       <Text style={styles.label}>Bar name</Text>
       <TextInput style={styles.input} value={barName} onChangeText={setBarName} maxLength={80} placeholder="e.g. Mugumisi Sports Bar" placeholderTextColor={c.muted} />
       <Text style={styles.hint}>Shown at the top of the app, on the sign-in keypad and on every export.</Text>

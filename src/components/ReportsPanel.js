@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getReport, shareReportExport } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import { fmt, signed, money, units, titleCase } from '../utils/format';
 import { IconXls, IconPdf } from '../theme/zbsIcons';
 
@@ -37,6 +38,7 @@ const PRESETS = [
 
 export default function ReportsPanel() {
   const c = useZbsColors();
+  const cushion = useBottomCushion(32);
   const { settings } = useAuth();
   const V = settings.show_values;
   const [[from, to], setRange] = useState(() => range('month'));
@@ -93,7 +95,7 @@ export default function ReportsPanel() {
   const t = report?.totals;
 
   return (
-    <ScrollView contentContainerStyle={styles.main}>
+    <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {PRESETS.map(([k, label]) => {
           const [a, b] = range(k);

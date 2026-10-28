@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 
 export default function NotesModal({ visible, notes, onClose, onAdd, onDelete }) {
   const c = useZbsColors();
+  const cushion = useBottomCushion(20);
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const styles = makeStyles(c);
@@ -23,7 +25,7 @@ export default function NotesModal({ visible, notes, onClose, onAdd, onDelete })
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { paddingBottom: cushion }]} onPress={() => {}}>
           <View style={styles.grab} />
           <View style={styles.head}>
             <Text style={styles.title}>Notes</Text>

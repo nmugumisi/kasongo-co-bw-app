@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, Switch, ScrollView, StyleSheet
 import { requestAccountDeletion } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 
 export default function AccountPanel() {
   const { user, settings, logOut } = useAuth();
   const c = useZbsColors();
+  const cushion = useBottomCushion(24);
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,7 +35,7 @@ export default function AccountPanel() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.main}>
+    <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]}>
       <View style={styles.card}>
         <Text style={styles.name}>{user?.name}</Text>
         <Text style={styles.sub}>{settings.bar_name}</Text>

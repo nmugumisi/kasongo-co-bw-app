@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuth } from '../utils/AuthContext';
 import { DARK } from '../theme/zbsColors';
+import { useBottomCushion } from '../theme/layout';
 
 const c = DARK;
 
 export default function BiometricLockScreen() {
   const { user, settings, unlockWithBiometrics, logOut } = useAuth();
+  const cushion = useBottomCushion(24);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +27,7 @@ export default function BiometricLockScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: cushion }]}>
       <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
       <Text style={styles.sub}>{user?.name}</Text>
       <Text style={[styles.msg, failed && styles.msgBad]}>
