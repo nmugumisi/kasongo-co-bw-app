@@ -2,12 +2,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getSheet, closeSheet, addNote, deleteNote } from '../services/api';
+import { getSheet, closeSheet, addNote, deleteNote, shareSheetExport } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, sheetCacheKey } from '../utils/offlineStore';
-import { IconBack } from '../theme/zbsIcons';
+import { IconBack, IconXls, IconPdf } from '../theme/zbsIcons';
 import { calc } from '../utils/calc';
 import { fmt, signed, money, niceDate } from '../utils/format';
 import NotesModal from '../components/NotesModal';
@@ -17,7 +17,7 @@ export default function ReviewScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { settings } = useAuth();
+  const { settings, canManage } = useAuth();
   const isOnline = useNetworkStatus();
   const sheetId = route.params?.sheetId;
 
@@ -27,6 +27,20 @@ export default function ReviewScreen() {
   const [loadError, setLoadError] = useState(null);
   const [closing, setClosing] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
+  const [downloading, setDownloading] = useState(null); // 'xlsx' | 'pdf' | null
+  const [dlError, setDlError] = useState(null);
+
+  async function download(format) {
+    setDownloading(format);
+    setDlError(null);
+    try {
+      await shareSheetExport({ id: sheetId, date: sheet.date, format });
+    } catch (e) {
+      setDlError(e.message || 'Something went wrong.');
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   const load = useCallback(async () => {
     const cached = await getJSON(sheetCacheKey(sheetId));
@@ -248,6 +262,23 @@ export default function ReviewScreen() {
           <Text style={styles.addNoteBtnText}>+ Add a note</Text>
         </TouchableOpacity>
 
+        {canManage ? (
+          <>
+            <View style={styles.dl}>
+              {[
+                ['xlsx', 'Excel', IconXls],
+                ['pdf', 'PDF', IconPdf],
+              ].map(([fmtKey, label, Icon]) => (
+                <TouchableOpacity key={fmtKey} style={styles.dlBtn} onPress={() => download(fmtKey)} disabled={!!downloading}>
+                  {downloading === fmtKey ? <ActivityIndicator color={c.text} /> : <Icon size={18} color={c.text} />}
+                  <Text style={styles.dlText}>{downloading === fmtKey ? 'Preparing…' : label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {dlError ? <Text style={styles.dlError}>{dlError}</Text> : null}
+          </>
+        ) : null}
+
         <View style={styles.actions}>
           {!isClosed ? (
             <TouchableOpacity
@@ -309,6 +340,10 @@ function makeStyles(c) {
     addNoteBtn: { height: 50, borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
     addNoteBtnText: { fontSize: 15, fontWeight: '600', color: c.text },
     actions: { gap: 8, marginTop: 20 },
+    dl: { flexDirection: 'row', gap: 8, marginTop: 22 },
+    dlBtn: { flex: 1, flexDirection: 'row', gap: 8, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    dlText: { fontSize: 16, fontWeight: '700', color: c.text },
+    dlError: { color: c.neg, fontSize: 13, textAlign: 'center', marginTop: 10 },
     primaryBtn: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     primaryBtnText: { fontSize: 16, fontWeight: '700' },
     disabledBtn: { opacity: 0.5 },

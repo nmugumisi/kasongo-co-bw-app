@@ -196,20 +196,25 @@ const MIME = {
   pdf: { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
 };
 
-/** Downloads the variance report as Excel or PDF, then opens the phone's share/open sheet for it. */
-export async function shareReportExport({ from, to, only, format }) {
-  const params = new URLSearchParams({ from, to, only: only ? '1' : '0', format });
-  const file = new File(Paths.cache, `stock-variance-${from}-to-${to}.${format}`);
+/** Downloads an export to the cache directory, then opens the phone's share/open sheet for it. */
+async function shareExport(path, filename, format) {
+  const file = new File(Paths.cache, filename);
   try {
-    await File.downloadFileAsync(`${BASE_URL}/zbs/v1/export/report?${params}`, file, {
-      headers: await authHeader(),
-      idempotent: true,
-    });
+    await File.downloadFileAsync(`${BASE_URL}${path}`, file, { headers: await authHeader(), idempotent: true });
   } catch {
     throw new Error("Couldn't download the file. Check your connection and try again.");
   }
-  if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing files isn\'t available on this phone.');
+  if (!(await Sharing.isAvailableAsync())) throw new Error("Sharing files isn't available on this phone.");
   await Sharing.shareAsync(file.uri, { ...MIME[format], dialogTitle: file.name });
+}
+
+export function shareReportExport({ from, to, only, format }) {
+  const params = new URLSearchParams({ from, to, only: only ? '1' : '0', format });
+  return shareExport(`/zbs/v1/export/report?${params}`, `stock-variance-${from}-to-${to}.${format}`, format);
+}
+
+export function shareSheetExport({ id, date, format }) {
+  return shareExport(`/zbs/v1/export/sheet/${id}?format=${format}`, `stock-sheet-${date}.${format}`, format);
 }
 
 // --- zbs/v1: account ---
