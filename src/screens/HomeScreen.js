@@ -7,6 +7,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getSheets, createSheet } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useNetworkStatus } from '../utils/useNetworkStatus';
+import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
 import { IconCog, IconMoon, IconSun, IconOut, IconNext } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
 
@@ -20,21 +22,31 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
   const { user, settings, theme, toggleTheme, logOut } = useAuth();
+  const isOnline = useNetworkStatus();
   const today = todayIso();
 
   const [sheets, setSheets] = useState(null);
   const [date, setDate] = useState(today);
   const [showPicker, setShowPicker] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const load = useCallback(async () => {
+    if (sheets === null) {
+      const cached = await getJSON(sheetsListCacheKey());
+      if (cached) setSheets(cached);
+    }
     try {
       const list = await getSheets({ limit: 20 });
-      setSheets(Array.isArray(list) ? list : []);
+      const arr = Array.isArray(list) ? list : [];
+      setSheets(arr);
+      setJSON(sheetsListCacheKey(), arr);
     } catch {
+      // offline: keep showing whatever cache/previous list is already on screen
       setSheets((s) => s ?? []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFocusEffect(
@@ -45,11 +57,12 @@ export default function HomeScreen() {
 
   async function openSheetFor(dateStr) {
     setOpening(true);
+    setOpenError(null);
     try {
       const d = await createSheet({ date: dateStr });
       navigation.navigate('Sheet', { sheetId: d.sheet.id });
-    } catch {
-      // toast-free: errors surface once on the sheet screen reload
+    } catch (e) {
+      setOpenError(isOnline ? e.message || 'Something went wrong.' : "You're offline — connect to open a sheet that hasn't been opened on this device yet.");
     } finally {
       setOpening(false);
     }
@@ -87,6 +100,12 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: insets.bottom + 24 }]}>
+        {!isOnline ? (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineBannerText}>You're offline. Showing the last saved sheets.</Text>
+          </View>
+        ) : null}
+
         {todaySheet ? (
           <TouchableOpacity onPress={() => navigation.navigate('Sheet', { sheetId: todaySheet.id })} activeOpacity={0.9}>
             <LinearGradient colors={[c.accent, '#ff8a3d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
@@ -136,7 +155,9 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.openBtn} onPress={() => openSheetFor(date)} disabled={opening}>
             <Text style={styles.openBtnText}>{opening ? 'Opening…' : 'Open sheet'}</Text>
           </TouchableOpacity>
-          <Text style={styles.hint}>Opens the sheet for that date, or starts it if nobody has yet.</Text>
+          {openError ? <Text style={styles.errorText}>{openError}</Text> : (
+            <Text style={styles.hint}>Opens the sheet for that date, or starts it if nobody has yet.</Text>
+          )}
         </View>
 
         <Text style={styles.sectionH}>Recent sheets</Text>
@@ -237,6 +258,9 @@ function makeStyles(c) {
     openBtn: { height: 50, borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
     openBtnText: { fontSize: 16, fontWeight: '700', color: c.text },
     hint: { fontSize: 12, color: c.muted, marginTop: 8, textAlign: 'center' },
+    errorText: { fontSize: 12, color: c.neg, marginTop: 8, textAlign: 'center' },
+    offlineBanner: { backgroundColor: c.warnBg, borderRadius: 12, padding: 10, marginBottom: 12 },
+    offlineBannerText: { fontSize: 13, color: c.warn, textAlign: 'center' },
     sectionH: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, color: c.muted, marginTop: 22, marginBottom: 10, marginHorizontal: 2 },
     empty: { color: c.muted, textAlign: 'center', paddingVertical: 24 },
     sheetList: { gap: 8 },

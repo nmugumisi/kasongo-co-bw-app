@@ -145,10 +145,10 @@ export default function ItemEditorModal({
     }
   }
 
-  async function handleVoid(rid) {
+  async function handleVoid(rid, clientId) {
     setBusy(true);
     try {
-      await onVoidReceipt(it.id, rid);
+      await onVoidReceipt(it.id, rid, clientId);
     } finally {
       setBusy(false);
     }
@@ -301,7 +301,7 @@ export default function ItemEditorModal({
                           {r.voided ? ` · voided${r.voided_by ? ` by ${r.voided_by}` : ''}` : ''}
                         </Text>
                         {!r.voided && r.can_void ? (
-                          <TouchableOpacity style={styles.voidBtn} onPress={() => handleVoid(r.id)} disabled={busy}>
+                          <TouchableOpacity style={styles.voidBtn} onPress={() => handleVoid(r.id, r.client_id)} disabled={busy}>
                             <IconClose size={14} color={c.muted} />
                           </TouchableOpacity>
                         ) : null}

@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSheet, closeSheet, addNote, deleteNote } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useNetworkStatus } from '../utils/useNetworkStatus';
+import { getJSON, sheetCacheKey } from '../utils/offlineStore';
 import { IconBack } from '../theme/zbsIcons';
 import { calc } from '../utils/calc';
 import { fmt, signed, money, niceDate } from '../utils/format';
@@ -16,23 +18,36 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
   const { settings } = useAuth();
+  const isOnline = useNetworkStatus();
   const sheetId = route.params?.sheetId;
 
   const [sheet, setSheet] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [closing, setClosing] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const cached = await getJSON(sheetCacheKey(sheetId));
+    if (cached) {
+      setSheet(cached.sheet);
+      setItems(cached.items);
+      setLoading(false);
+    }
     try {
       const d = await getSheet(sheetId);
       setSheet(d.sheet);
       setItems(d.items);
+      setLoadError(null);
+    } catch (e) {
+      if (!cached) {
+        setLoadError(isOnline ? e.message || 'Something went wrong.' : "You're offline and this sheet hasn't been opened on this device before.");
+      }
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetId]);
 
   useFocusEffect(
@@ -97,10 +112,21 @@ export default function ReviewScreen() {
 
   const styles = makeStyles(c);
 
-  if (loading || !sheet) {
+  if (loading && !sheet) {
     return (
       <View style={[styles.flex, styles.center]}>
         <ActivityIndicator color={c.accent} />
+      </View>
+    );
+  }
+
+  if (!sheet) {
+    return (
+      <View style={[styles.flex, styles.center, { padding: 24 }]}>
+        <Text style={styles.empty}>{loadError || "Couldn't load this sheet."}</Text>
+        <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: c.accent, marginTop: 16 }]} onPress={() => load()}>
+          <Text style={[styles.primaryBtnText, { color: c.accentInk }]}>Try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -120,7 +146,13 @@ export default function ReviewScreen() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: insets.bottom + 24 }]}>
-        {isClosed ? (
+        {!isOnline ? (
+          <View style={[styles.banner, { backgroundColor: c.warnBg }]}>
+            <Text style={{ color: c.warn, fontSize: 13 }}>
+              You're offline, showing the last saved copy. {!isClosed ? 'Closing a sheet needs a connection.' : ''}
+            </Text>
+          </View>
+        ) : isClosed ? (
           <View style={[styles.banner, { backgroundColor: c.posBg }]}>
             <Text style={{ color: c.pos, fontSize: 13 }}>
               Closed. Its closing stock is the next sheet's opening. It stays editable; corrections also update the next sheet's opening.
@@ -219,12 +251,12 @@ export default function ReviewScreen() {
         <View style={styles.actions}>
           {!isClosed ? (
             <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: c.accent }, todo.length && styles.disabledBtn]}
+              style={[styles.primaryBtn, { backgroundColor: c.accent }, (todo.length || !isOnline) && styles.disabledBtn]}
               onPress={handleClose}
-              disabled={!!todo.length || closing}
+              disabled={!!todo.length || closing || !isOnline}
             >
               <Text style={[styles.primaryBtnText, { color: c.accentInk }]}>
-                {closing ? 'Closing…' : todo.length ? `Count ${todo.length} more to close` : 'Close sheet'}
+                {closing ? 'Closing…' : !isOnline ? "Offline — can't close" : todo.length ? `Count ${todo.length} more to close` : 'Close sheet'}
               </Text>
             </TouchableOpacity>
           ) : (

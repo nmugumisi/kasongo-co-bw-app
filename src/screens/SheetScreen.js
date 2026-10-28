@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -12,9 +12,11 @@ import {
 } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
+import { useNetworkStatus } from '../utils/useNetworkStatus';
+import { getJSON, setJSON, sheetCacheKey, pendingLinesKey, pendingReceiptsKey } from '../utils/offlineStore';
 import { IconBack, IconSearch, IconLock } from '../theme/zbsIcons';
 import { calc } from '../utils/calc';
-import { fmt, signed, niceDate, people, titleCase, money } from '../utils/format';
+import { fmt, signed, niceDate, people, titleCase, money, hhmm } from '../utils/format';
 import ItemEditorModal from '../components/ItemEditorModal';
 import NotesModal from '../components/NotesModal';
 
@@ -23,6 +25,8 @@ const MODES = [
   { key: 'sales', label: 'Sales' },
   { key: 'deliveries', label: 'Deliveries' },
 ];
+
+const SAVE_LABEL = { saved: 'Saved', saving: 'Saving…', pending: 'Unsaved', offline: 'Offline', error: 'Retrying' };
 
 function randomClientId() {
   return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -37,13 +41,16 @@ export default function SheetScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { settings } = useAuth();
+  const { user, settings } = useAuth();
+  const isOnline = useNetworkStatus();
   const sheetId = route.params?.sheetId;
+  const username = user?.username;
 
   const [sheet, setSheet] = useState(null);
   const [prev, setPrev] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [mode, setMode] = useState('count');
   const [filter, setFilter] = useState('all');
   const [group, setGroup] = useState('');
@@ -53,33 +60,36 @@ export default function SheetScreen() {
   const [editorQueueIds, setEditorQueueIds] = useState([]);
   const [notesVisible, setNotesVisible] = useState(false);
 
-  const pendingRef = useRef({}); // itemId -> {pos?, count?}
+  const pendingRef = useRef({}); // itemId -> {pos?, count?}, queued line edits not yet on the server
+  const rqRef = useRef([]); // queued delivery receipts, applied in order, idempotent on client_id
+  const rqInflightRef = useRef(false);
   const saveTimer = useRef(null);
+  const retryTimer = useRef(null);
+  const shownRef = useRef(false); // has a sheet (cached or fresh) been shown yet this load()?
+  const isOnlineRef = useRef(isOnline);
+  isOnlineRef.current = isOnline;
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const d = await getSheet(sheetId);
-      setSheet(d.sheet);
-      setPrev(d.prev);
-      setItems(d.items);
-    } finally {
-      setLoading(false);
-    }
-  }, [sheetId]);
+  function hasPending() {
+    return Object.keys(pendingRef.current).length > 0 || rqRef.current.length > 0;
+  }
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
-
-  const isClosed = sheet?.status === 'closed';
+  function persistLines() {
+    setJSON(pendingLinesKey(username, sheetId), Object.keys(pendingRef.current).length ? pendingRef.current : null);
+  }
+  function persistReceipts() {
+    setJSON(pendingReceiptsKey(username, sheetId), rqRef.current.length ? rqRef.current : null);
+  }
 
   function mergeItemState(state) {
     setItems((prevItems) => prevItems.map((it) => (it.id === state.item_id ? { ...it, ...state } : it)));
   }
+
+  function settleSaveState() {
+    setSaveState(hasPending() ? 'pending' : 'saved');
+  }
+
+  // --- line edits (count/pos): debounced, batched, retried on reconnect ---
 
   function flush() {
     clearTimeout(saveTimer.current);
@@ -87,6 +97,7 @@ export default function SheetScreen() {
     const ids = Object.keys(batch);
     if (!ids.length) return;
     pendingRef.current = {};
+    persistLines();
     setSaveState('saving');
     saveLines(sheetId, batch)
       .then((res) => {
@@ -94,36 +105,115 @@ export default function SheetScreen() {
           const state = res.items?.[id];
           if (state) mergeItemState(state);
         });
-        setSaveState(Object.keys(pendingRef.current).length ? 'pending' : 'saved');
+        settleSaveState();
+        if (hasPending()) saveTimer.current = setTimeout(flush, 300);
       })
       .catch(() => {
         ids.forEach((id) => {
           pendingRef.current[id] = { ...batch[id], ...pendingRef.current[id] };
         });
-        setSaveState('error');
+        persistLines();
+        setSaveState(isOnlineRef.current ? 'error' : 'offline');
+        clearTimeout(retryTimer.current);
+        retryTimer.current = setTimeout(syncNow, 8000);
       });
   }
 
   function queueFieldChange(itemId, field, value) {
     setItems((prevItems) => prevItems.map((it) => (it.id === itemId ? { ...it, [field]: value } : it)));
     pendingRef.current[itemId] = { ...pendingRef.current[itemId], [field]: value };
+    persistLines();
     setSaveState('pending');
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(flush, 700);
   }
 
-  useEffect(() => () => clearTimeout(saveTimer.current), []);
+  // --- delivery receipts: queued one at a time, idempotent on client_id ---
 
-  async function handleLogReceipt(itemId, qty, note) {
-    const state = await addReceipt(sheetId, { item_id: itemId, qty, note, client_id: randomClientId() });
-    mergeItemState(state);
-    return state;
+  function flushReceipts() {
+    if (rqInflightRef.current || !rqRef.current.length) return;
+    const job = rqRef.current[0];
+    rqInflightRef.current = true;
+    setSaveState('saving');
+    addReceipt(sheetId, job)
+      .then((state) => {
+        rqInflightRef.current = false;
+        rqRef.current = rqRef.current.slice(1);
+        persistReceipts();
+        mergeItemState(state);
+        settleSaveState();
+        flushReceipts();
+      })
+      .catch((e) => {
+        rqInflightRef.current = false;
+        if (e.status === 400 || e.status === 404) {
+          // Rejected for good (e.g. the item no longer exists) — drop it so the queue keeps moving.
+          rqRef.current = rqRef.current.slice(1);
+          persistReceipts();
+          setItems((prevItems) =>
+            prevItems.map((it) =>
+              it.id === job.item_id ? { ...it, receipts: (it.receipts || []).filter((r) => r.client_id !== job.client_id) } : it
+            )
+          );
+          Alert.alert('Delivery not saved', e.message || 'That entry was rejected.');
+          flushReceipts();
+          return;
+        }
+        setSaveState(isOnlineRef.current ? 'error' : 'offline');
+        clearTimeout(retryTimer.current);
+        retryTimer.current = setTimeout(syncNow, 8000);
+      });
   }
 
-  async function handleVoidReceipt(itemId, rid) {
-    const state = await apiVoidReceipt(sheetId, rid);
-    mergeItemState(state);
-    return state;
+  async function handleLogReceipt(itemId, qty, note) {
+    const job = { client_id: randomClientId(), item_id: itemId, qty, note, time: hhmm(), at: new Date().toISOString() };
+    rqRef.current = [...rqRef.current, job];
+    persistReceipts();
+    setItems((prevItems) =>
+      prevItems.map((it) => {
+        if (it.id !== itemId) return it;
+        const receipts = [
+          ...(it.receipts || []),
+          { id: null, client_id: job.client_id, qty, note, by: user?.name, time: job.time, voided: false, can_void: true, pending: true },
+        ];
+        const received = Math.round(receipts.reduce((sum, r) => sum + (r.voided ? 0 : Number(r.qty) || 0), 0) * 100) / 100;
+        return { ...it, receipts, received };
+      })
+    );
+    setSaveState('pending');
+    flushReceipts();
+  }
+
+  function syncNow() {
+    clearTimeout(retryTimer.current);
+    flush();
+    flushReceipts();
+  }
+
+  async function handleVoidReceipt(itemId, rid, clientId) {
+    // Still queued on this device (never reached the server): drop it locally, no request needed.
+    const stillQueued = !rid && rqRef.current.some((j) => j.client_id === clientId);
+    if (stillQueued) {
+      rqRef.current = rqRef.current.filter((j) => j.client_id !== clientId);
+      persistReceipts();
+      setItems((prevItems) =>
+        prevItems.map((x) => {
+          if (x.id !== itemId) return x;
+          const receipts = (x.receipts || []).filter((r) => r.client_id !== clientId);
+          const received = Math.round(receipts.reduce((sum, r) => sum + (r.voided ? 0 : Number(r.qty) || 0), 0) * 100) / 100;
+          return { ...x, receipts, received };
+        })
+      );
+      settleSaveState();
+      return;
+    }
+    if (!rid) return; // mid-sync (inflight) — let it finish, then it'll have an id to void
+    try {
+      const state = await apiVoidReceipt(sheetId, rid);
+      mergeItemState(state);
+    } catch (e) {
+      Alert.alert('Could not void', isOnline ? e.message || 'Something went wrong.' : "You're offline — try again once you're back online.");
+    }
   }
 
   async function handleAddNote(body) {
@@ -135,6 +225,99 @@ export default function SheetScreen() {
     const notes_list = await deleteNote(sheetId, nid);
     setSheet((s) => ({ ...s, notes_list }));
   }
+
+  // --- loading: cache first (instant, works offline), then refresh from the server ---
+
+  function applyQueuesTo(freshItems) {
+    const byId = new Map(freshItems.map((it) => [it.id, { ...it }]));
+    Object.keys(pendingRef.current).forEach((id) => {
+      const it = byId.get(Number(id)) || byId.get(id);
+      if (!it) return;
+      Object.assign(it, pendingRef.current[id]);
+    });
+    rqRef.current.forEach((job) => {
+      const it = byId.get(job.item_id);
+      if (!it) return;
+      if ((it.receipts || []).some((r) => r.client_id === job.client_id)) return; // already synced
+      it.receipts = [
+        ...(it.receipts || []),
+        { id: null, client_id: job.client_id, qty: job.qty, note: job.note, by: user?.name, time: job.time, voided: false, can_void: true, pending: true },
+      ];
+      it.received = Math.round(it.receipts.reduce((sum, r) => sum + (r.voided ? 0 : Number(r.qty) || 0), 0) * 100) / 100;
+    });
+    return Array.from(byId.values());
+  }
+
+  const load = useCallback(
+    async ({ background = false } = {}) => {
+      if (!sheetId) return;
+      [pendingRef.current, rqRef.current] = await Promise.all([
+        getJSON(pendingLinesKey(username, sheetId)),
+        getJSON(pendingReceiptsKey(username, sheetId)),
+      ]);
+      pendingRef.current = pendingRef.current || {};
+      rqRef.current = rqRef.current || [];
+
+      if (!background) {
+        const cached = await getJSON(sheetCacheKey(sheetId));
+        if (cached) {
+          setSheet(cached.sheet);
+          setPrev(cached.prev);
+          setItems(applyQueuesTo(cached.items));
+          setLoading(false);
+          settleSaveState();
+          shownRef.current = true;
+        }
+      }
+
+      try {
+        const d = await getSheet(sheetId);
+        setSheet(d.sheet);
+        setPrev(d.prev);
+        setItems(applyQueuesTo(d.items));
+        setJSON(sheetCacheKey(sheetId), d);
+        setLoadError(null);
+        shownRef.current = true;
+      } catch (e) {
+        if (!shownRef.current) {
+          setLoadError(isOnlineRef.current ? e.message || 'Something went wrong.' : "You're offline and this sheet hasn't been opened on this device before.");
+        }
+      } finally {
+        setLoading(false);
+        settleSaveState();
+        if (hasPending() && isOnlineRef.current) syncNow();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sheetId, username]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  // Reconnecting (or returning to the app while online) retries whatever's still queued.
+  const firstOnlineCheck = useRef(true);
+  useEffect(() => {
+    if (firstOnlineCheck.current) {
+      firstOnlineCheck.current = false;
+      return;
+    }
+    if (isOnline) syncNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
+
+  useEffect(
+    () => () => {
+      clearTimeout(saveTimer.current);
+      clearTimeout(retryTimer.current);
+    },
+    []
+  );
+
+  const isClosed = sheet?.status === 'closed';
 
   const groups = useMemo(() => {
     const seen = new Set();
@@ -209,10 +392,21 @@ export default function SheetScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jumpId, items.length]);
 
-  if (loading || !sheet) {
+  if (loading && !sheet) {
     return (
       <View style={[styles.flex, styles.center]}>
         <ActivityIndicator color={c.accent} />
+      </View>
+    );
+  }
+
+  if (!sheet) {
+    return (
+      <View style={[styles.flex, styles.center, { padding: 24 }]}>
+        <Text style={styles.empty}>{loadError || "Couldn't load this sheet."}</Text>
+        <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: c.accent, marginTop: 16 }]} onPress={() => load()}>
+          <Text style={[styles.primaryBtnText, { color: c.accentInk }]}>Try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -222,6 +416,7 @@ export default function SheetScreen() {
   // just because it no longer matches the active filter (e.g. counting something under "Waiting for count").
   const editorItems = editorQueueIds.map((id) => items.find((it) => it.id === id)).filter(Boolean);
   const editorIndex = editorQueueIds.indexOf(editorItemId);
+  const displaySaveState = !isOnline && saveState !== 'saving' && hasPending() ? 'offline' : saveState;
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top }]}>
@@ -254,10 +449,13 @@ export default function SheetScreen() {
             </>
           ) : (
             <>
-              <View style={[styles.saveDot, { backgroundColor: saveState === 'saved' ? c.pos : saveState === 'error' ? c.neg : c.warn }]} />
-              <Text style={styles.saveText}>
-                {{ saved: 'Saved', saving: 'Saving…', pending: 'Unsaved', error: 'Retrying' }[saveState]}
-              </Text>
+              <View
+                style={[
+                  styles.saveDot,
+                  { backgroundColor: displaySaveState === 'saved' ? c.pos : displaySaveState === 'error' || displaySaveState === 'offline' ? c.neg : c.warn },
+                ]}
+              />
+              <Text style={styles.saveText}>{SAVE_LABEL[displaySaveState]}</Text>
             </>
           )}
         </View>
@@ -318,7 +516,13 @@ export default function SheetScreen() {
         ))}
       </ScrollView>
 
-      {isClosed ? (
+      {!isOnline ? (
+        <View style={[styles.banner, { backgroundColor: c.warnBg }]}>
+          <Text style={[styles.bannerText, { color: c.warn }]}>
+            You're offline. {hasPending() ? "Entries are saved on this device and will sync once you're back online." : 'Showing the last saved copy of this sheet.'}
+          </Text>
+        </View>
+      ) : isClosed ? (
         <View style={[styles.banner, { backgroundColor: `${c.accent}24` }]}>
           <Text style={[styles.bannerText, { color: c.text }]}>Closed sheet. You can still correct it.</Text>
         </View>

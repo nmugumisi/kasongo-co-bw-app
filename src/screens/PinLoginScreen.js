@@ -13,6 +13,7 @@ import {
 import { pinLogin, accountLogin } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { getOrCreateDeviceId } from '../utils/auth';
+import { useNetworkStatus } from '../utils/useNetworkStatus';
 import NumericKeypad from '../components/NumericKeypad';
 import { DARK } from '../theme/zbsColors';
 
@@ -20,6 +21,7 @@ const c = DARK;
 
 export default function PinLoginScreen() {
   const { logIn, settings } = useAuth();
+  const isOnline = useNetworkStatus();
   const [mode, setMode] = useState('pin'); // 'pin' | 'account'
   const [pin, setPin] = useState('');
   const [username, setUsername] = useState('');
@@ -39,6 +41,12 @@ export default function PinLoginScreen() {
   }
 
   async function submitPin(fullPin) {
+    if (!isOnline) {
+      setError("You're offline. Connect to the internet to sign in for the first time on this device.");
+      setPin('');
+      runShake();
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -55,6 +63,10 @@ export default function PinLoginScreen() {
   }
 
   async function submitAccount() {
+    if (!isOnline) {
+      setError("You're offline. Connect to the internet to sign in for the first time on this device.");
+      return;
+    }
     if (!username || !password) {
       setError('Enter your username and password.');
       return;
@@ -99,7 +111,9 @@ export default function PinLoginScreen() {
 
         {mode === 'pin' ? (
           <>
-            <Text style={[styles.msg, error && styles.msgBad]}>{error || (submitting ? 'Checking…' : 'Enter your passcode')}</Text>
+            <Text style={[styles.msg, error && styles.msgBad]}>
+              {error || (submitting ? 'Checking…' : !isOnline ? "You're offline — connect to sign in" : 'Enter your passcode')}
+            </Text>
 
             <Animated.View
               style={[
@@ -126,7 +140,7 @@ export default function PinLoginScreen() {
           </>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.msg}>Manager or admin sign-in</Text>
+            <Text style={styles.msg}>{!isOnline ? "You're offline — connect to sign in" : 'Manager or admin sign-in'}</Text>
             {error ? <Text style={[styles.msg, styles.msgBad]}>{error}</Text> : null}
 
             <TextInput

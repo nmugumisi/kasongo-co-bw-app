@@ -3,6 +3,7 @@ import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCredentials, saveCredentials, clearCredentials } from './auth';
 import { getSettings } from '../services/api';
+import { getJSON, setJSON, settingsCacheKey } from './offlineStore';
 
 const AuthContext = createContext(null);
 
@@ -18,9 +19,13 @@ export function AuthProvider({ children }) {
   const refreshSettings = useCallback(async () => {
     try {
       const s = await getSettings();
-      if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
+      if (s) {
+        const merged = { ...DEFAULT_SETTINGS, ...s };
+        setSettings(merged);
+        setJSON(settingsCacheKey(), merged);
+      }
     } catch {
-      // keep whatever we already had
+      // offline or unreachable: whatever's already showing (cache or default) stays
     }
   }, []);
 
@@ -43,10 +48,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    getCredentials().then((creds) => {
+    getCredentials().then(async (creds) => {
       setUser(creds);
+      if (creds) {
+        // Show the real bar name immediately on a cold start even with no connectivity yet,
+        // then quietly refresh from the server in the background.
+        const cached = await getJSON(settingsCacheKey());
+        if (cached) setSettings({ ...DEFAULT_SETTINGS, ...cached });
+        refreshSettings();
+      }
       setLoading(false);
-      if (creds) refreshSettings();
     });
   }, [refreshSettings]);
 
