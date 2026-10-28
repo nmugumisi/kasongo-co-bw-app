@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { colors } from '../theme/colors';
-import { FONTS } from '../theme/typography';
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useZbsColors } from '../theme/zbsColors';
+import { IconClose } from '../theme/zbsIcons';
 
 export default function NotesModal({ visible, notes, onClose, onAdd, onDelete }) {
+  const c = useZbsColors();
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const styles = makeStyles(c);
 
   async function handleAdd() {
     if (!body.trim()) return;
@@ -22,72 +24,85 @@ export default function NotesModal({ visible, notes, onClose, onAdd, onDelete })
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-          <Text style={styles.title}>Notes</Text>
-
-          <FlatList
-            data={notes}
-            keyExtractor={(n) => String(n.id)}
-            style={styles.list}
-            ListEmptyComponent={<Text style={styles.empty}>No notes on this sheet yet.</Text>}
-            renderItem={({ item: n }) => (
-              <View style={styles.noteRow}>
-                <View style={styles.flex1}>
-                  <Text style={styles.noteBody}>{n.body}</Text>
-                  <Text style={styles.noteMeta}>
-                    {n.by} · {n.when}
-                  </Text>
-                </View>
-                {n.can_delete ? (
-                  <TouchableOpacity onPress={() => onDelete(n.id)}>
-                    <Text style={styles.deleteLink}>Delete</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            )}
-          />
-
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Write a note…"
-              placeholderTextColor="#888"
-              value={body}
-              onChangeText={setBody}
-              multiline
-            />
-            <TouchableOpacity style={styles.button} onPress={handleAdd} disabled={submitting}>
-              <Text style={styles.buttonText}>{submitting ? 'Adding…' : 'Add note'}</Text>
+          <View style={styles.grab} />
+          <View style={styles.head}>
+            <Text style={styles.title}>Notes</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+              <IconClose size={18} color={c.text} />
             </TouchableOpacity>
           </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Breakages, comps, fridge problems, anything the manager should know"
+            placeholderTextColor={c.muted}
+            value={body}
+            onChangeText={setBody}
+            multiline
+          />
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={handleAdd} disabled={submitting}>
+            <Text style={[styles.addBtnText, { color: c.accentInk }]}>{submitting ? 'Adding…' : 'Add note'}</Text>
+          </TouchableOpacity>
+
+          <ScrollView style={styles.list}>
+            {!notes.length ? (
+              <Text style={styles.empty}>No notes yet.</Text>
+            ) : (
+              notes
+                .slice()
+                .reverse()
+                .map((n) => (
+                  <View key={n.id} style={styles.noteRow}>
+                    <View style={styles.flex1}>
+                      <Text style={styles.noteMeta}>
+                        <Text style={{ color: c.text, fontWeight: '700' }}>{n.by || '-'}</Text> · {n.when}
+                      </Text>
+                      <Text style={styles.noteBody}>{n.body}</Text>
+                    </View>
+                    {n.can_delete ? (
+                      <TouchableOpacity onPress={() => onDelete(n.id)} style={styles.delBtn}>
+                        <IconClose size={14} color={c.muted} />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ))
+            )}
+          </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, maxHeight: '80%', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
-  title: { fontSize: 18, fontFamily: FONTS.semiBold, color: colors.ink, marginBottom: 12 },
-  list: { maxHeight: 260 },
-  empty: { fontSize: 13, fontFamily: FONTS.regular, color: colors.subtleText, paddingVertical: 12 },
-  noteRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  flex1: { flex: 1 },
-  noteBody: { fontSize: 14, fontFamily: FONTS.regular, color: colors.ink },
-  noteMeta: { fontSize: 11, fontFamily: FONTS.regular, color: colors.subtleText, marginTop: 3 },
-  deleteLink: { fontSize: 13, fontFamily: FONTS.medium, color: colors.danger, marginLeft: 8 },
-  form: { marginTop: 14 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: colors.ink,
-    minHeight: 60,
-  },
-  button: { backgroundColor: colors.brand, borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
-  buttonText: { fontFamily: FONTS.semiBold, fontSize: 15, color: '#fff' },
-});
+function makeStyles(c) {
+  return StyleSheet.create({
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    sheet: { backgroundColor: c.bg2, maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 14, paddingBottom: 24 },
+    grab: { width: 42, height: 5, borderRadius: 5, backgroundColor: c.card2, alignSelf: 'center', marginBottom: 8 },
+    head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+    title: { fontSize: 17, fontWeight: '700', color: c.text },
+    closeBtn: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    input: {
+      minHeight: 72,
+      marginTop: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.card,
+      color: c.text,
+      fontSize: 15,
+      textAlignVertical: 'top',
+    },
+    addBtn: { height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+    addBtnText: { fontSize: 15, fontWeight: '700' },
+    list: { marginTop: 14 },
+    empty: { color: c.muted, fontSize: 13, paddingVertical: 10 },
+    noteRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.line },
+    flex1: { flex: 1 },
+    noteMeta: { fontSize: 12, color: c.muted, marginBottom: 3 },
+    noteBody: { fontSize: 14, color: c.text, lineHeight: 19 },
+    delBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
+  });
+}

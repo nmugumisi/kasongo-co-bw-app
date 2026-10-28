@@ -1,67 +1,64 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../utils/AuthContext';
-import { colors } from '../theme/colors';
-import { FONTS } from '../theme/typography';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useZbsColors } from '../theme/zbsColors';
+import { IconBack } from '../theme/zbsIcons';
+import BarSettingsPanel from '../components/BarSettingsPanel';
+import CashiersPanel from '../components/CashiersPanel';
+
+const TABS = [
+  { key: 'bar', label: 'Bar' },
+  { key: 'cashiers', label: 'Cashiers' },
+];
+const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts' };
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
-  const { user, canManage, settings, logOut } = useAuth();
+  const insets = useSafeAreaInsets();
+  const c = useZbsColors();
+  const [tab, setTab] = useState('bar');
+  const styles = makeStyles(c);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.row}>Signed in as {user?.name}</Text>
-        <Text style={styles.rowSub}>{canManage ? 'Manager' : 'Cashier'} · {settings.bar_name}</Text>
+    <View style={[styles.flex, { paddingTop: insets.top }]}>
+      <View style={styles.topRow}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+          <IconBack size={20} color={c.text} />
+        </TouchableOpacity>
+        <View style={styles.titleCol}>
+          <Text style={styles.titleStrong}>Settings</Text>
+          <Text style={styles.titleSmall}>{SUB[tab]}</Text>
+        </View>
       </View>
 
-      {canManage ? (
-        <>
-          <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('BarSettings')}>
-            <Text style={styles.linkText}>Bar settings</Text>
+      <View style={styles.seg}>
+        {TABS.map((t) => (
+          <TouchableOpacity
+            key={t.key}
+            style={[styles.segBtn, tab === t.key && { backgroundColor: c.accent }]}
+            onPress={() => setTab(t.key)}
+          >
+            <Text style={[styles.segBtnText, { color: tab === t.key ? c.accentInk : c.muted }]}>{t.label}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Cashiers')}>
-            <Text style={styles.linkText}>Cashiers</Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
+        ))}
+      </View>
 
-      <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('About')}>
-        <Text style={styles.linkText}>About Kasongo</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={logOut}>
-        <Text style={styles.logoutText}>Sign out</Text>
-      </TouchableOpacity>
+      {tab === 'bar' ? <BarSettingsPanel /> : <CashiersPanel />}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: colors.bg },
-  title: { fontSize: 22, fontFamily: FONTS.bold, color: colors.ink, marginBottom: 16 },
-  card: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 20 },
-  row: { fontSize: 15, fontFamily: FONTS.medium, color: colors.ink },
-  rowSub: { fontSize: 13, fontFamily: FONTS.regular, color: colors.subtleText, marginTop: 4 },
-  link: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  linkText: { fontSize: 15, fontFamily: FONTS.medium, color: colors.ink },
-  logoutButton: {
-    marginTop: 16,
-    backgroundColor: colors.danger,
-    borderRadius: 24,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  logoutText: { color: '#fff', fontFamily: FONTS.semiBold, fontSize: 16 },
-});
+function makeStyles(c) {
+  return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.bg },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44 },
+    iconBtn: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    titleCol: { flex: 1, minWidth: 0 },
+    titleStrong: { fontSize: 18, fontWeight: '700', color: c.text },
+    titleSmall: { fontSize: 13, color: c.muted, marginTop: 1 },
+    seg: { flexDirection: 'row', backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 12, padding: 3, marginHorizontal: 14, marginTop: 4, marginBottom: 10 },
+    segBtn: { flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+    segBtnText: { fontSize: 14, fontWeight: '600' },
+  });
+}

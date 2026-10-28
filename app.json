@@ -5,8 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "primaryColor": "#C88E2A",
+    "userInterfaceStyle": "automatic",
+    "primaryColor": "#f5b83d",
     "androidStatusBar": {
       "barStyle": "light-content",
       "backgroundColor": "#00000000",
@@ -21,7 +21,7 @@
       "allowBackup": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon-foreground-1024.png",
-        "backgroundColor": "#1E1B16"
+        "backgroundColor": "#0e1014"
       }
     },
     "web": {
@@ -34,9 +34,11 @@
           "image": "./assets/kasongo-splash.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#1E1B16"
+          "backgroundColor": "#0e1014"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "extra": {}
   }

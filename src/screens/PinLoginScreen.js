@@ -1,32 +1,42 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Animated,
   StyleSheet,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { pinLogin, accountLogin } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
 import { getOrCreateDeviceId } from '../utils/auth';
 import NumericKeypad from '../components/NumericKeypad';
-import { colors } from '../theme/colors';
-import { FONTS } from '../theme/typography';
+import { DARK } from '../theme/zbsColors';
+
+const c = DARK;
 
 export default function PinLoginScreen() {
-  const insets = useSafeAreaInsets();
-  const { logIn } = useAuth();
+  const { logIn, settings } = useAuth();
   const [mode, setMode] = useState('pin'); // 'pin' | 'account'
   const [pin, setPin] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const shake = useRef(new Animated.Value(0)).current;
+
+  function runShake() {
+    shake.setValue(0);
+    Animated.sequence([
+      Animated.timing(shake, { toValue: 1, duration: 60, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: -1, duration: 90, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 1, duration: 90, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  }
 
   async function submitPin(fullPin) {
     setSubmitting(true);
@@ -38,6 +48,7 @@ export default function PinLoginScreen() {
     } catch (e) {
       setError(e.message || 'Wrong passcode.');
       setPin('');
+      runShake();
     } finally {
       setSubmitting(false);
     }
@@ -82,25 +93,30 @@ export default function PinLoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Image source={require('../../assets/kasongo-icon.png')} style={styles.logo} />
-        <Text style={styles.title}>Kasongo</Text>
-        <Text style={styles.subtitle}>
-          {submitting ? 'Checking…' : mode === 'pin' ? 'Enter your passcode' : 'Manager or admin sign-in'}
-        </Text>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text style={styles.logo}>▤</Text>
+        <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
 
         {mode === 'pin' ? (
           <>
-            <View style={styles.dots}>
+            <Text style={[styles.msg, error && styles.msgBad]}>{error || (submitting ? 'Checking…' : 'Enter your passcode')}</Text>
+
+            <Animated.View
+              style={[
+                styles.dots,
+                {
+                  transform: [
+                    {
+                      translateX: shake.interpolate({ inputRange: [-1, 0, 1], outputRange: [-10, 0, 10] }),
+                    },
+                  ],
+                },
+              ]}
+            >
               {[0, 1, 2, 3].map((i) => (
                 <View key={i} style={[styles.dot, i < pin.length && styles.dotFilled]} />
               ))}
-            </View>
-
-            {error ? <Text style={styles.error}>{error}</Text> : <View style={styles.errorSpacer} />}
+            </Animated.View>
 
             <NumericKeypad onPress={handleKey} disabled={submitting} />
 
@@ -110,12 +126,13 @@ export default function PinLoginScreen() {
           </>
         ) : (
           <View style={styles.form}>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Text style={styles.msg}>Manager or admin sign-in</Text>
+            {error ? <Text style={[styles.msg, styles.msgBad]}>{error}</Text> : null}
 
             <TextInput
               style={styles.input}
               placeholder="Username"
-              placeholderTextColor="#8A8375"
+              placeholderTextColor={c.muted}
               autoCapitalize="none"
               autoCorrect={false}
               value={username}
@@ -124,7 +141,7 @@ export default function PinLoginScreen() {
             <TextInput
               style={[styles.input, styles.inputSpacing]}
               placeholder="Password"
-              placeholderTextColor="#8A8375"
+              placeholderTextColor={c.muted}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -145,32 +162,30 @@ export default function PinLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bottomNavBg },
-  container: { flexGrow: 1, alignItems: 'center', backgroundColor: colors.bottomNavBg, paddingHorizontal: 24 },
-  logo: { width: 72, height: 72, borderRadius: 16, marginBottom: 12 },
-  title: { fontSize: 26, fontFamily: FONTS.lato, color: '#fff', letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, fontFamily: FONTS.regular, color: colors.bottomNavFg, marginTop: 6, marginBottom: 24 },
-  dots: { flexDirection: 'row', gap: 16, marginBottom: 12 },
-  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: colors.bottomNavFg },
-  dotFilled: { backgroundColor: colors.brand, borderColor: colors.brand },
-  error: { color: '#E8A3A3', fontFamily: FONTS.regular, fontSize: 13, marginBottom: 12, textAlign: 'center' },
-  errorSpacer: { height: 30 },
-  switchLink: { marginTop: 24 },
-  switchLinkText: { color: colors.bottomNavFg, fontFamily: FONTS.regular, fontSize: 13, textDecorationLine: 'underline' },
-  form: { width: '100%' },
+  flex: { flex: 1, backgroundColor: c.bg },
+  container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg, paddingHorizontal: 24, paddingVertical: 40 },
+  logo: { fontSize: 34, color: c.accent, marginBottom: 6 },
+  title: { fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 4, textAlign: 'center' },
+  msg: { fontSize: 14, color: c.muted, marginTop: 6, marginBottom: 18, textAlign: 'center', minHeight: 20 },
+  msgBad: { color: c.neg, fontWeight: '600' },
+  dots: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: c.muted },
+  dotFilled: { backgroundColor: c.accent, borderColor: c.accent },
+  switchLink: { marginTop: 26 },
+  switchLinkText: { color: c.muted, fontSize: 13, textDecorationLine: 'underline' },
+  form: { width: '100%', maxWidth: 340, alignItems: 'center' },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#3A362E',
-    backgroundColor: '#2A2620',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: c.line,
+    backgroundColor: c.bg2,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46,
     fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: '#fff',
+    color: c.text,
   },
-  inputSpacing: { marginTop: 12 },
-  button: { backgroundColor: colors.brand, borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-  buttonText: { fontFamily: FONTS.semiBold, fontSize: 16, color: '#fff' },
+  inputSpacing: { marginTop: 10 },
+  button: { width: '100%', backgroundColor: c.accent, borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  buttonText: { fontWeight: '700', fontSize: 16, color: c.accentInk },
 });

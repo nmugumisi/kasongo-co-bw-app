@@ -1,0 +1,17 @@
+// Maps the inline SVGs in zbs-app.js to lucide-react-native equivalents.
+export {
+  ChevronLeft as IconBack,
+  ChevronLeft as IconPrev,
+  ChevronRight as IconNext,
+  ChevronRight as IconGo,
+  FileSpreadsheet as IconXls,
+  FileText as IconPdf,
+  LogOut as IconOut,
+  Moon as IconMoon,
+  Sun as IconSun,
+  Search as IconSearch,
+  X as IconClose,
+  Lock as IconLock,
+  Delete as IconDel,
+  Settings as IconCog,
+} from 'lucide-react-native';

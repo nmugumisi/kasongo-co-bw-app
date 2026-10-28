@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Appearance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCredentials, saveCredentials, clearCredentials } from './auth';
 import { getSettings } from '../services/api';
 
 const AuthContext = createContext(null);
 
-const DEFAULT_SETTINGS = { bar_name: 'Kasongo', show_values: false, currency: '' };
+const DEFAULT_SETTINGS = { bar_name: 'Bar Stock', show_values: false, currency: '' };
+const THEME_KEY = 'zbsa_theme';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [theme, setTheme] = useState('dark');
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -18,6 +22,24 @@ export function AuthProvider({ children }) {
     } catch {
       // keep whatever we already had
     }
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY).then((saved) => {
+      if (saved === 'light' || saved === 'dark') {
+        setTheme(saved);
+      } else {
+        setTheme(Appearance.getColorScheme() === 'light' ? 'light' : 'dark');
+      }
+    });
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => {
+      const next = t === 'dark' ? 'light' : 'dark';
+      AsyncStorage.setItem(THEME_KEY, next).catch(() => {});
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -53,6 +75,8 @@ export function AuthProvider({ children }) {
         canManage: !!user?.manage,
         settings,
         refreshSettings,
+        theme,
+        toggleTheme,
         logIn,
         logOut,
       }}
