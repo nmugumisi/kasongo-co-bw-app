@@ -166,3 +166,9 @@ export function updateCashier(id, { pin, disabled } = {}) {
 export function deleteCashier(id) {
   return request(`/zbs/v1/cashiers/${id}`, { method: 'DELETE' });
 }
+
+// --- zbs/v1: account ---
+
+export function requestAccountDeletion({ message } = {}) {
+  return request('/zbs/v1/delete-request', { method: 'POST', body: { message } });
+}

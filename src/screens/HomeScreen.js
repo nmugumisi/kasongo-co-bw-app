@@ -19,7 +19,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { user, canManage, settings, theme, toggleTheme, logOut } = useAuth();
+  const { user, settings, theme, toggleTheme, logOut } = useAuth();
   const today = todayIso();
 
   const [sheets, setSheets] = useState(null);
@@ -74,11 +74,9 @@ export default function HomeScreen() {
             {user?.name}
           </Text>
         </View>
-        {canManage ? (
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <IconCog size={20} color={c.text} />
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
+          <IconCog size={20} color={c.text} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={toggleTheme}>
           {theme === 'dark' ? <IconSun size={20} color={c.text} /> : <IconMoon size={20} color={c.text} />}
         </TouchableOpacity>

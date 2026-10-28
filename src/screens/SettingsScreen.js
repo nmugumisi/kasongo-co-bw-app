@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { IconBack } from '../theme/zbsIcons';
 import BarSettingsPanel from '../components/BarSettingsPanel';
 import CashiersPanel from '../components/CashiersPanel';
+import AccountPanel from '../components/AccountPanel';
 
-const TABS = [
-  { key: 'bar', label: 'Bar' },
-  { key: 'cashiers', label: 'Cashiers' },
-];
-const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts' };
+const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts', account: 'Your account' };
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const [tab, setTab] = useState('bar');
+  const { canManage } = useAuth();
+  const tabs = useMemo(
+    () => (canManage ? [{ key: 'bar', label: 'Bar' }, { key: 'cashiers', label: 'Cashiers' }, { key: 'account', label: 'Account' }] : []),
+    [canManage]
+  );
+  const [tab, setTab] = useState(canManage ? 'bar' : 'account');
   const styles = makeStyles(c);
 
   return (
@@ -32,19 +35,21 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={styles.seg}>
-        {TABS.map((t) => (
-          <TouchableOpacity
-            key={t.key}
-            style={[styles.segBtn, tab === t.key && { backgroundColor: c.accent }]}
-            onPress={() => setTab(t.key)}
-          >
-            <Text style={[styles.segBtnText, { color: tab === t.key ? c.accentInk : c.muted }]}>{t.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {tabs.length ? (
+        <View style={styles.seg}>
+          {tabs.map((t) => (
+            <TouchableOpacity
+              key={t.key}
+              style={[styles.segBtn, tab === t.key && { backgroundColor: c.accent }]}
+              onPress={() => setTab(t.key)}
+            >
+              <Text style={[styles.segBtnText, { color: tab === t.key ? c.accentInk : c.muted }]}>{t.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
-      {tab === 'bar' ? <BarSettingsPanel /> : <CashiersPanel />}
+      {tab === 'bar' ? <BarSettingsPanel /> : tab === 'cashiers' ? <CashiersPanel /> : <AccountPanel />}
     </View>
   );
 }
