@@ -89,6 +89,10 @@ export function pinLogin({ pin, device }) {
   return request('/zbs/v1/app-login', { method: 'POST', auth: false, body: { pin, device } });
 }
 
+export function accountLogin({ username, password }) {
+  return request('/zbs/v1/login', { method: 'POST', auth: false, body: { username, password } });
+}
+
 // --- zbs/v1: bar settings ---
 
 export function getSettings() {
