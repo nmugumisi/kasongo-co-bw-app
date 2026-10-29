@@ -187,6 +187,17 @@ export function removeManager(id) {
   return request(`/zbs/v1/managers/${id}`, { method: 'DELETE' });
 }
 
+// --- zbs/v1: suggested items for a new bar's first 7 days (managers only) ---
+
+export function getSuggestions() {
+  return request('/zbs/v1/suggestions');
+}
+
+/** what: add | dismiss | restore | hide | show. body: { keys?: string[], all?: boolean } */
+export function suggestionsDo(what, body = {}) {
+  return request(`/zbs/v1/suggestions/${what}`, { method: 'POST', body });
+}
+
 // --- zbs/v1: activity log (managers only). group: items | staff | sheets | exports | bar ---
 
 export function getActivity({ group, q, page } = {}) {

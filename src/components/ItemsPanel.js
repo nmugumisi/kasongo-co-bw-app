@@ -7,6 +7,7 @@ import { useZbsColors } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 import { IconSearch, IconClose } from '../theme/zbsIcons';
 import { fmt, money, titleCase } from '../utils/format';
+import SuggestedItems from './SuggestedItems';
 
 export default function ItemsPanel() {
   const c = useZbsColors();
@@ -67,6 +68,7 @@ export default function ItemsPanel() {
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
+        <SuggestedItems onAdded={load} />
         <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanel(null)}>
           <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add item</Text>
         </TouchableOpacity>
@@ -85,7 +87,7 @@ export default function ItemsPanel() {
         {!items ? (
           <ActivityIndicator color={c.accent} style={{ marginTop: 20 }} />
         ) : !sections.length ? (
-          <Text style={styles.empty}>Nothing matches.</Text>
+          <Text style={styles.empty}>{items.length ? 'Nothing matches.' : 'No items yet. Add one above.'}</Text>
         ) : (
           sections.map(([g, rows]) => (
             <View key={g}>
