@@ -9,7 +9,7 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
-import { IconCog, IconMoon, IconSun, IconOut, IconNext, IconChat } from '../theme/zbsIcons';
+import { IconCog, IconMoon, IconSun, IconOut, IconNext, IconChat, IconAi } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
 
 function todayIso() {
@@ -137,6 +137,21 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
 
+        {canManage ? (
+          <TouchableOpacity style={styles.askRow} onPress={() => navigation.navigate('Ask')} activeOpacity={0.8}>
+            <View style={styles.askIcon}>
+              <IconAi size={18} color={c.accent} />
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.askTitle}>Ask AI about your stock</Text>
+              <Text style={styles.sheetMeta} numberOfLines={1}>
+                Which items were short most this week?
+              </Text>
+            </View>
+            <IconNext size={18} color={c.muted} />
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.card}>
           <Text style={styles.fieldLabel}>Date</Text>
           <TouchableOpacity style={styles.dateInput} onPress={() => setShowPicker(true)}>
@@ -256,6 +271,9 @@ function makeStyles(c) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    askRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, marginBottom: 10 },
+    askIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: c.warnBg },
+    askTitle: { fontSize: 15, fontWeight: '700', color: c.text },
     card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 16, marginBottom: 10 },
     fieldLabel: { fontSize: 12, fontWeight: '600', color: c.muted, marginBottom: 6 },
     dateInput: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg2, justifyContent: 'center', paddingHorizontal: 12 },
