@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { IconDel } from '../theme/zbsIcons';
 import { DARK } from '../theme/zbsColors';
 
@@ -12,6 +12,11 @@ const ROWS = [
 
 // The passcode gate is always rendered on the dark palette, like the web app's sign-in screen.
 export default function NumericKeypad({ onPress, disabled }) {
+  // An explicit size keeps the keys round. (width:'100%' + maxWidth + aspectRatio stretched them into
+  // ovals on Android, where the height followed the uncapped width.) 48 = the screen's side padding.
+  const { width } = useWindowDimensions();
+  const size = Math.floor(Math.min(88, (Math.min(340, width - 48) - 2 * GAP) / 3));
+  const round = { width: size, height: size, borderRadius: size / 2 };
   return (
     <View style={styles.pad}>
       {ROWS.map((row, r) => (
@@ -19,7 +24,7 @@ export default function NumericKeypad({ onPress, disabled }) {
           {row.map((key, i) => (
             <View key={i} style={styles.cell}>
               {key === '' ? null : (
-                <TouchableOpacity style={styles.key} disabled={disabled} onPress={() => onPress(key)} activeOpacity={0.6}>
+                <TouchableOpacity style={[styles.key, round]} disabled={disabled} onPress={() => onPress(key)} activeOpacity={0.6}>
                   {key === 'back' ? <IconDel size={26} color={DARK.muted} /> : <Text style={styles.keyText}>{key}</Text>}
                 </TouchableOpacity>
               )}
@@ -31,15 +36,13 @@ export default function NumericKeypad({ onPress, disabled }) {
   );
 }
 
+const GAP = 16;
+
 const styles = StyleSheet.create({
-  pad: { width: '100%', maxWidth: 340, gap: 16 },
-  row: { flexDirection: 'row', gap: 16 },
+  pad: { width: '100%', maxWidth: 340, gap: GAP },
+  row: { flexDirection: 'row', gap: GAP },
   cell: { flex: 1, alignItems: 'center' },
   key: {
-    width: '100%',
-    maxWidth: 88,
-    aspectRatio: 1,
-    borderRadius: 999,
     backgroundColor: DARK.card,
     borderWidth: 1,
     borderColor: DARK.line,
