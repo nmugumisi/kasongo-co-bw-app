@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getCredentials } from '../utils/auth';
+import { getActiveBar } from '../utils/activeBar';
 
 const BASE_URL = 'https://ghetto.co.bw/wp-json';
 
@@ -48,6 +49,7 @@ async function request(path, { method = 'GET', body, auth = true, query, timeout
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     Object.assign(headers, await authHeader());
+    if (getActiveBar()) headers['X-ZBS-Bar'] = String(getActiveBar());
   }
 
   const controller = new AbortController();
@@ -93,6 +95,17 @@ export function pinLogin({ pin, device, device_token }) {
 
 export function accountLogin({ username, password }) {
   return request('/zbs/v1/login', { method: 'POST', auth: false, body: { username, password } });
+}
+
+// --- zbs/v1: the bars this account works at, and switching between them ---
+
+export function getBars() {
+  return request('/zbs/v1/bars');
+}
+
+/** Returns { bar, role, manage, capture, settings, bars } for the bar switched to. */
+export function switchBar(bar) {
+  return request('/zbs/v1/bars/switch', { method: 'POST', body: { bar } });
 }
 
 // --- zbs/v1: sign-up (no account yet) and the bar's own status ---

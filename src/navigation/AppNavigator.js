@@ -17,7 +17,7 @@ import AskScreen from '../screens/AskScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  const { loading, isLoggedIn, locked, theme } = useAuth();
+  const { loading, isLoggedIn, locked, theme, barId } = useAuth();
   const c = useZbsColors();
 
   if (loading) {
@@ -42,7 +42,8 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    // Keyed on the bar: switching bars starts again from Home, with nothing left over from the last bar.
+    <NavigationContainer key={barId} theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Sheet" component={SheetScreen} />

@@ -2,6 +2,7 @@
 // zbs-app.js uses in localStorage, scoped per sheet and (for write queues) per signed-in user
 // so a shared device's offline entries from one cashier never get sent under the next one's name.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getActiveBar } from './activeBar';
 
 export async function getJSON(key) {
   try {
@@ -25,7 +26,9 @@ export async function setJSON(key, value) {
 }
 
 export const sheetCacheKey = (id) => `zbsa_cache_sheet_${id}`;
-export const sheetsListCacheKey = () => 'zbsa_cache_sheets';
-export const settingsCacheKey = () => 'zbsa_cache_settings';
+// Sheet ids are unique across bars; the list and the bar profile are not, so they're kept per bar.
+export const sheetsListCacheKey = () => `zbsa_cache_sheets_${getActiveBar()}`;
+export const settingsCacheKey = () => `zbsa_cache_settings_${getActiveBar()}`;
+export const barsCacheKey = () => 'zbsa_cache_bars';
 export const pendingLinesKey = (username, sheetId) => `zbsa_q_${username || 0}_${sheetId}`;
 export const pendingReceiptsKey = (username, sheetId) => `zbsa_rq_${username || 0}_${sheetId}`;

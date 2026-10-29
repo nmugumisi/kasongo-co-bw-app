@@ -9,9 +9,10 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
-import { IconUser, IconOut, IconNext, IconChat, IconAi } from '../theme/zbsIcons';
+import { IconUser, IconOut, IconNext, IconChat, IconAi, IconDown } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
 import PendingHome from '../components/PendingHome';
+import BarSwitcher from '../components/BarSwitcher';
 
 function todayIso() {
   const d = new Date();
@@ -22,7 +23,8 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { user, settings, logOut, canManage } = useAuth();
+  const { user, settings, logOut, canManage, canSwitchBar } = useAuth();
+  const [switching, setSwitching] = useState(false);
   // A bar waiting for approval (or declined) gets the setup screen instead of sheets.
   const pending = !!settings.bar_status && settings.bar_status !== 'active';
   const isOnline = useNetworkStatus();
@@ -82,14 +84,23 @@ export default function HomeScreen() {
   return (
     <View style={[styles.flex, { paddingTop: insets.top }]}>
       <View style={styles.topRow}>
-        <View style={styles.titleCol}>
-          <Text style={styles.titleStrong} numberOfLines={1}>
-            {settings.bar_name}
-          </Text>
+        <TouchableOpacity
+          style={styles.titleCol}
+          onPress={() => setSwitching(true)}
+          disabled={!canSwitchBar}
+          accessibilityRole={canSwitchBar ? 'button' : undefined}
+          accessibilityLabel={canSwitchBar ? `${settings.bar_name}. Switch bar` : undefined}
+        >
+          <View style={styles.titleLine}>
+            <Text style={[styles.titleStrong, styles.titleShrink]} numberOfLines={1}>
+              {settings.bar_name}
+            </Text>
+            {canSwitchBar ? <IconDown size={18} color={c.muted} /> : null}
+          </View>
           <Text style={styles.titleSmall} numberOfLines={1}>
             {user?.name}
           </Text>
-        </View>
+        </TouchableOpacity>
         {canManage && !pending ? (
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Ask')} accessibilityLabel="Ask AI">
             <IconChat size={20} color={c.text} />
@@ -219,6 +230,7 @@ export default function HomeScreen() {
         )}
       </ScrollView>
       )}
+      <BarSwitcher visible={switching} onClose={() => setSwitching(false)} />
     </View>
   );
 }
@@ -228,6 +240,8 @@ function makeStyles(c) {
     flex: { flex: 1, backgroundColor: c.bg },
     topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44 },
     titleCol: { flex: 1, minWidth: 0 },
+    titleLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    titleShrink: { flexShrink: 1 },
     titleStrong: { fontSize: 18, fontWeight: '700', color: c.text, letterSpacing: -0.2 },
     titleSmall: { fontSize: 13, color: c.muted, marginTop: 1 },
     iconBtn: {
