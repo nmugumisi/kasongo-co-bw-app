@@ -15,6 +15,7 @@ export {
   Delete as IconDel,
   Settings as IconCog,
   Sparkles as IconAi,
+  MessageCircle as IconChat,
   SendHorizontal as IconSend,
   RefreshCw as IconRefresh,
 } from 'lucide-react-native';
