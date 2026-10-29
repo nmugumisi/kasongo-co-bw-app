@@ -45,7 +45,15 @@
           "faceIDPermission": "Allow Kasongo to use Face ID to unlock the app."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Kasongo to use the camera to scan a manager's QR code when linking this device.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

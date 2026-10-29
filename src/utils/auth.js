@@ -44,6 +44,32 @@ export async function getOrCreateDeviceId() {
   return id;
 }
 
+// Bars this phone is linked to: [{ token, bar: { id, name, slug }, device: { id, name } }]. Kept across sign-outs:
+// a link belongs to the phone, not to whoever signed in on it.
+const LINKS_KEY = 'kasongo_device_links';
+const LINK_CUR_KEY = 'kasongo_device_link_bar';
+
+export async function getLinks() {
+  try {
+    const list = JSON.parse((await SecureStore.getItemAsync(LINKS_KEY)) || '[]');
+    return Array.isArray(list) ? list.filter((l) => l && l.token && l.bar) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveLinks(list) {
+  await SecureStore.setItemAsync(LINKS_KEY, JSON.stringify(list));
+}
+
+export async function getLinkBar() {
+  return parseInt((await SecureStore.getItemAsync(LINK_CUR_KEY)) || '0', 10) || 0;
+}
+
+export async function setLinkBar(id) {
+  await SecureStore.setItemAsync(LINK_CUR_KEY, String(id || 0));
+}
+
 export async function clearCredentials() {
   await Promise.all([
     SecureStore.deleteItemAsync(USERNAME_KEY),

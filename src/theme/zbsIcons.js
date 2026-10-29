@@ -19,4 +19,6 @@ export {
   MessageCircle as IconChat,
   SendHorizontal as IconSend,
   RefreshCw as IconRefresh,
+  Smartphone as IconPhone,
+  Globe as IconGlobe,
 } from 'lucide-react-native';

@@ -6,6 +6,7 @@ import { useZbsColors } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 import ManagersSection from './ManagersSection';
+import DevicesSection from './DevicesSection';
 
 export default function CashiersPanel() {
   const c = useZbsColors();
@@ -63,6 +64,7 @@ export default function CashiersPanel() {
         )}
 
         <ManagersSection />
+        <DevicesSection />
       </ScrollView>
 
       <CashierModal

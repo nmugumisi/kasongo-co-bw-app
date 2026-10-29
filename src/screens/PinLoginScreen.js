@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,13 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
-import { pinLogin, accountLogin } from '../services/api';
+import { pinLogin, accountLogin, checkDevices } from '../services/api';
 import { useAuth } from '../utils/AuthContext';
-import { getOrCreateDeviceId } from '../utils/auth';
+import { getOrCreateDeviceId, getLinks, saveLinks, getLinkBar, setLinkBar } from '../utils/auth';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import NumericKeypad from '../components/NumericKeypad';
 import SignUpFlow from '../components/SignUpFlow';
+import DeviceLinkFlow from '../components/DeviceLinkFlow';
 import { DARK } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 
@@ -25,13 +26,79 @@ export default function PinLoginScreen() {
   const { logIn, settings } = useAuth();
   const cushion = useBottomCushion(40);
   const isOnline = useNetworkStatus();
-  const [mode, setMode] = useState('pin'); // 'pin' | 'account' | 'signup'
+  const [mode, setMode] = useState('pin'); // 'pin' | 'account' | 'signup' | 'link'
+  // Bars this phone is linked to. Passcodes are looked up only in the chosen one.
+  const [links, setLinks] = useState([]);
+  const [barId, setBarId] = useState(0);
+  const [open, setOpen] = useState(true); // some bar still takes passcodes from unlinked phones
+  const [linkNote, setLinkNote] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [pin, setPin] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
+
+  const current = links.find((l) => l.bar.id === barId) || links[0] || null;
+
+  async function storeLinks(list, bar) {
+    const cur = list.find((l) => l.bar.id === bar) || list[0] || null;
+    setLinks(list);
+    setBarId(cur ? cur.bar.id : 0);
+    await saveLinks(list);
+    await setLinkBar(cur ? cur.bar.id : 0);
+  }
+
+  // On opening: drop links a manager has since unlinked, and learn whether this phone can work unlinked.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const list = await getLinks();
+      const bar = await getLinkBar();
+      if (!alive) return;
+      setLinks(list);
+      setBarId(bar);
+      try {
+        const r = await checkDevices(list.map((l) => l.token));
+        if (!alive) return;
+        const gone = [];
+        const kept = list.filter((l, i) => {
+          const d = r.devices[i];
+          if (d?.ok) {
+            l.bar = d.bar;
+            l.device = d.device;
+            return true;
+          }
+          gone.push(l.bar.name);
+          return false;
+        });
+        setOpen(!!r.open);
+        await storeLinks(kept, bar);
+        if (gone.length) setError(`This phone was unlinked from ${gone.join(', ')}.`);
+        if (!kept.length && !r.open) {
+          setLinkNote(gone.length ? `This phone was unlinked from ${gone.join(', ')}. Ask a manager for a new code.` : null);
+          setMode('link');
+        }
+      } catch {
+        // offline: the keypad still shows; the server checks the link when online
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function onLinked(r) {
+    const list = links.filter((l) => l.bar.id !== r.bar.id).concat([{ token: r.device_token, bar: r.bar, device: r.device }]);
+    await storeLinks(list, r.bar.id);
+    setLinkNote(null);
+    setPin('');
+    setMode('pin');
+    setError(null);
+    setNotice(`Linked to ${r.bar.name}. Enter your passcode`);
+  }
 
   function runShake() {
     shake.setValue(0);
@@ -54,9 +121,27 @@ export default function PinLoginScreen() {
     setError(null);
     try {
       const device = await getOrCreateDeviceId();
-      const result = await pinLogin({ pin: fullPin, device });
+      const result = await pinLogin({ pin: fullPin, device, device_token: current?.token || '' });
       await logIn(result);
     } catch (e) {
+      const code = e.data?.code;
+      if (code === 'zbs_device_unlinked' && current) {
+        const rest = links.filter((l) => l !== current);
+        await storeLinks(rest, 0);
+        if (!rest.length && !open) {
+          setLinkNote(`This phone was unlinked from ${current.bar.name}. Ask a manager for a new code.`);
+          setMode('link');
+        } else setError(`This phone was unlinked from ${current.bar.name}.`);
+        setPin('');
+        return;
+      }
+      if (code === 'zbs_device_required') {
+        setOpen(false);
+        setLinkNote(e.message);
+        setPin('');
+        setMode('link');
+        return;
+      }
       setError(e.message || 'Wrong passcode.');
       setPin('');
       runShake();
@@ -89,6 +174,7 @@ export default function PinLoginScreen() {
   function handleKey(key) {
     if (submitting) return;
     setError(null);
+    setNotice(null);
     if (key === 'back') {
       setPin((p) => p.slice(0, -1));
       return;
@@ -102,19 +188,39 @@ export default function PinLoginScreen() {
 
   function switchMode(next) {
     setError(null);
+    setNotice(null);
+    setLinkNote(null);
     setPin('');
     setMode(next);
+  }
+
+  function pickBar(id) {
+    if (submitting) return;
+    setPin('');
+    setError(null);
+    setNotice(null);
+    storeLinks(links, id);
   }
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
-        {mode !== 'signup' ? <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text> : null}
+        {mode === 'pin' || mode === 'account' ? <Text style={styles.title}>{(mode === 'pin' && current?.bar.name) || settings?.bar_name || 'Bar Stock'}</Text> : null}
+
+        {mode === 'pin' && links.length > 1 ? (
+          <View style={styles.bars}>
+            {links.map((l) => (
+              <TouchableOpacity key={l.bar.id} onPress={() => pickBar(l.bar.id)} style={[styles.barChip, l.bar.id === current?.bar.id && styles.barChipOn]}>
+                <Text style={[styles.barChipText, l.bar.id === current?.bar.id && styles.barChipTextOn]}>{l.bar.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
 
         {mode === 'pin' ? (
           <>
             <Text style={[styles.msg, error && styles.msgBad]}>
-              {error || (submitting ? 'Checking…' : !isOnline ? "You're offline — connect to sign in" : 'Enter your passcode')}
+              {error || (submitting ? 'Checking…' : !isOnline ? "You're offline — connect to sign in" : notice || 'Enter your passcode')}
             </Text>
 
             <Animated.View
@@ -136,7 +242,10 @@ export default function PinLoginScreen() {
 
             <NumericKeypad onPress={handleKey} disabled={submitting} />
 
-            <TouchableOpacity onPress={() => switchMode('account')} style={styles.switchLink}>
+            <TouchableOpacity onPress={() => switchMode('link')} style={styles.linkDev}>
+              <Text style={styles.linkDevText}>{links.length ? 'Link another bar' : 'Link this phone to a bar'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => switchMode('account')} style={styles.switchLinkTight}>
               <Text style={styles.switchLinkText}>Manager or admin sign-in</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => switchMode('signup')} style={styles.signupLink}>
@@ -145,6 +254,20 @@ export default function PinLoginScreen() {
           </>
         ) : mode === 'signup' ? (
           <SignUpFlow onCancel={() => switchMode('pin')} />
+        ) : mode === 'link' ? (
+          <>
+            <DeviceLinkFlow key={linkNote || 'link'} note={linkNote} onLinked={onLinked} onCancel={links.length || open ? () => switchMode('pin') : null} />
+            {!links.length && !open ? (
+              <>
+                <TouchableOpacity onPress={() => switchMode('account')} style={styles.switchLink}>
+                  <Text style={styles.switchLinkText}>Manager or admin sign-in</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => switchMode('signup')} style={styles.signupLink}>
+                  <Text style={styles.signupLinkText}>New bar? Create an account</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </>
         ) : (
           <View style={styles.form}>
             <Text style={styles.msg}>{!isOnline ? "You're offline — connect to sign in" : 'Manager or admin sign-in'}</Text>
@@ -191,7 +314,15 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: c.muted },
   dotFilled: { backgroundColor: c.accent, borderColor: c.accent },
+  bars: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+  barChip: { borderWidth: 1, borderColor: c.line, backgroundColor: c.bg2, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14 },
+  barChipOn: { backgroundColor: c.accent, borderColor: c.accent },
+  barChipText: { color: c.text, fontSize: 14, fontWeight: '600' },
+  barChipTextOn: { color: c.accentInk },
+  linkDev: { marginTop: 22, paddingVertical: 8, paddingHorizontal: 12 },
+  linkDevText: { color: c.muted, fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   switchLink: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 12 },
+  switchLinkTight: { marginTop: 4, paddingVertical: 8, paddingHorizontal: 12 },
   switchLinkText: { color: c.muted, fontSize: 14, fontWeight: '600' },
   signupLink: { marginTop: 4, paddingVertical: 8, paddingHorizontal: 12 },
   signupLinkText: { color: c.accent, fontSize: 14, fontWeight: '600' },

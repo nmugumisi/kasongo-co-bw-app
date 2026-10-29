@@ -206,7 +206,7 @@ function ManagerModal({ visible, manager, onClose, onChanged }) {
   );
 }
 
-function makeStyles(c) {
+export function makeStyles(c) {
   return StyleSheet.create({
     sectionH: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, color: c.muted, marginBottom: 10 },
     inviteBtn: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },

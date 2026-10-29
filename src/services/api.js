@@ -87,8 +87,8 @@ async function request(path, { method = 'GET', body, auth = true, query, timeout
 
 // --- zbs/v1: sign-in ---
 
-export function pinLogin({ pin, device }) {
-  return request('/zbs/v1/app-login', { method: 'POST', auth: false, body: { pin, device } });
+export function pinLogin({ pin, device, device_token }) {
+  return request('/zbs/v1/app-login', { method: 'POST', auth: false, body: { pin, device, device_token } });
 }
 
 export function accountLogin({ username, password }) {
@@ -205,6 +205,46 @@ export function resendManagerInvite(id) {
 
 export function removeManager(id) {
   return request(`/zbs/v1/managers/${id}`, { method: 'DELETE' });
+}
+
+// --- zbs/v1: devices. A manager links a phone with a one-time code or QR; passcodes then only work for that bar. ---
+
+/** The new device, nobody signed in: a typed code or a scanned QR. Returns { device_token, device, bar }. */
+export function linkDevice({ code, qr, name, platform }) {
+  return request('/zbs/v1/devices/link', { method: 'POST', auth: false, body: { code, qr, name, platform } });
+}
+
+/** Which of this phone's links still work, and whether any bar still takes passcodes without one. */
+export function checkDevices(tokens) {
+  return request('/zbs/v1/devices/check', { method: 'POST', auth: false, body: { tokens } });
+}
+
+export function getDevices() {
+  return request('/zbs/v1/devices');
+}
+
+export function setDevicesRequired(required) {
+  return request('/zbs/v1/devices/settings', { method: 'POST', body: { required } });
+}
+
+export function renameDevice(id, name) {
+  return request(`/zbs/v1/devices/${id}`, { method: 'POST', body: { name } });
+}
+
+export function unlinkDevice(id) {
+  return request(`/zbs/v1/devices/${id}`, { method: 'DELETE' });
+}
+
+export function newLinkSession() {
+  return request('/zbs/v1/devices/sessions', { method: 'POST' });
+}
+
+export function getLinkSession(id) {
+  return request(`/zbs/v1/devices/sessions/${id}`);
+}
+
+export function cancelLinkSession(id) {
+  return request(`/zbs/v1/devices/sessions/${id}`, { method: 'DELETE' });
 }
 
 // --- zbs/v1: suggested items for a new bar's first 7 days (managers only) ---
