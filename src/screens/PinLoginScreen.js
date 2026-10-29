@@ -23,7 +23,7 @@ import { useBottomCushion } from '../theme/layout';
 const c = DARK;
 
 export default function PinLoginScreen() {
-  const { logIn, settings } = useAuth();
+  const { logIn } = useAuth();
   const cushion = useBottomCushion(40);
   const isOnline = useNetworkStatus();
   const [mode, setMode] = useState('pin'); // 'pin' | 'account' | 'signup' | 'link'
@@ -205,7 +205,9 @@ export default function PinLoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
-        {mode === 'pin' || mode === 'account' ? <Text style={styles.title}>{(mode === 'pin' && current?.bar.name) || settings?.bar_name || 'Bar Stock'}</Text> : null}
+        {mode === 'pin' || mode === 'account' ? <Text style={styles.title}>Kasongo</Text> : null}
+        {/* The bar this phone takes passcodes for, when it's linked to just one (more: the chips below). */}
+        {mode === 'pin' && links.length === 1 ? <Text style={styles.barLine}>{current.bar.name}</Text> : null}
 
         {mode === 'pin' && links.length > 1 ? (
           <View style={styles.bars}>
@@ -309,6 +311,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.bg },
   container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg, paddingHorizontal: 24, paddingVertical: 40 },
   title: { fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 4, textAlign: 'center' },
+  barLine: { fontSize: 15, fontWeight: '600', color: c.accent, textAlign: 'center' },
   msg: { fontSize: 14, color: c.muted, marginTop: 6, marginBottom: 18, textAlign: 'center', minHeight: 20 },
   msgBad: { color: c.neg, fontWeight: '600' },
   dots: { flexDirection: 'row', gap: 16, marginBottom: 24 },
