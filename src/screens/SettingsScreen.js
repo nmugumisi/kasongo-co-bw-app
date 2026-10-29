@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
-import { IconBack } from '../theme/zbsIcons';
+import { IconBack, IconSun, IconMoon } from '../theme/zbsIcons';
 import BarSettingsPanel from '../components/BarSettingsPanel';
 import CashiersPanel from '../components/CashiersPanel';
 import AccountPanel from '../components/AccountPanel';
@@ -17,7 +17,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { canManage } = useAuth();
+  const { canManage, theme, toggleTheme } = useAuth();
   const tabs = useMemo(
     // Manager/admin accounts themselves are managed in wp-admin, so there's no Account tab for them.
     () =>
@@ -44,6 +44,13 @@ export default function SettingsScreen() {
           <Text style={styles.titleStrong}>Settings</Text>
           <Text style={styles.titleSmall}>{SUB[tab]}</Text>
         </View>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={toggleTheme}
+          accessibilityLabel={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <IconSun size={20} color={c.text} /> : <IconMoon size={20} color={c.text} />}
+        </TouchableOpacity>
       </View>
 
       {tabs.length ? (
