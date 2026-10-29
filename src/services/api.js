@@ -178,10 +178,6 @@ export function getSheet(id) {
   return request(`/zbs/v1/sheets/${id}`);
 }
 
-export function updateSheet(id, { cashier, notes } = {}) {
-  return request(`/zbs/v1/sheets/${id}`, { method: 'POST', body: { cashier, notes } });
-}
-
 export function saveLines(id, lines) {
   return request(`/zbs/v1/sheets/${id}/lines`, { method: 'POST', body: { lines } });
 }
@@ -204,10 +200,6 @@ export function deleteNote(id, nid) {
 
 export function closeSheet(id, { notes } = {}) {
   return request(`/zbs/v1/sheets/${id}/close`, { method: 'POST', body: { notes } });
-}
-
-export function reopenSheet(id) {
-  return request(`/zbs/v1/sheets/${id}/reopen`, { method: 'POST' });
 }
 
 // --- zbs/v1: cashiers (managers only) ---
