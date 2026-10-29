@@ -15,6 +15,7 @@ import { useAuth } from '../utils/AuthContext';
 import { getOrCreateDeviceId } from '../utils/auth';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import NumericKeypad from '../components/NumericKeypad';
+import SignUpFlow from '../components/SignUpFlow';
 import { DARK } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 
@@ -24,7 +25,7 @@ export default function PinLoginScreen() {
   const { logIn, settings } = useAuth();
   const cushion = useBottomCushion(40);
   const isOnline = useNetworkStatus();
-  const [mode, setMode] = useState('pin'); // 'pin' | 'account'
+  const [mode, setMode] = useState('pin'); // 'pin' | 'account' | 'signup'
   const [pin, setPin] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -108,7 +109,7 @@ export default function PinLoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text>
+        {mode !== 'signup' ? <Text style={styles.title}>{settings?.bar_name || 'Bar Stock'}</Text> : null}
 
         {mode === 'pin' ? (
           <>
@@ -138,7 +139,12 @@ export default function PinLoginScreen() {
             <TouchableOpacity onPress={() => switchMode('account')} style={styles.switchLink}>
               <Text style={styles.switchLinkText}>Manager or admin sign-in</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => switchMode('signup')} style={styles.signupLink}>
+              <Text style={styles.signupLinkText}>New bar? Create an account</Text>
+            </TouchableOpacity>
           </>
+        ) : mode === 'signup' ? (
+          <SignUpFlow onCancel={() => switchMode('pin')} />
         ) : (
           <View style={styles.form}>
             <Text style={styles.msg}>{!isOnline ? "You're offline — connect to sign in" : 'Manager or admin sign-in'}</Text>
@@ -187,6 +193,8 @@ const styles = StyleSheet.create({
   dotFilled: { backgroundColor: c.accent, borderColor: c.accent },
   switchLink: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 12 },
   switchLinkText: { color: c.muted, fontSize: 14, fontWeight: '600' },
+  signupLink: { marginTop: 4, paddingVertical: 8, paddingHorizontal: 12 },
+  signupLinkText: { color: c.accent, fontSize: 14, fontWeight: '600' },
   form: { width: '100%', maxWidth: 340, alignItems: 'center' },
   input: {
     width: '100%',

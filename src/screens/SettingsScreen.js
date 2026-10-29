@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
@@ -33,7 +33,9 @@ export default function SettingsScreen() {
         : [],
     [canManage]
   );
-  const [tab, setTab] = useState(canManage ? 'bar' : 'account');
+  const route = useRoute();
+  // Home's setup checklist opens a particular tab.
+  const [tab, setTab] = useState(canManage ? route.params?.tab || 'bar' : 'account');
   const styles = makeStyles(c);
 
   return (

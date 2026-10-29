@@ -95,6 +95,26 @@ export function accountLogin({ username, password }) {
   return request('/zbs/v1/login', { method: 'POST', auth: false, body: { username, password } });
 }
 
+// --- zbs/v1: sign-up (no account yet) and the bar's own status ---
+
+export function signupCheck(slug) {
+  return request('/zbs/v1/signup/check', { auth: false, query: { slug } });
+}
+
+export function signupStart({ bar_name, bar_slug, name, email, password }) {
+  return request('/zbs/v1/signup/start', { method: 'POST', auth: false, body: { bar_name, bar_slug, name, email, password } });
+}
+
+/** The right code creates the account and the bar (pending) and returns an app sign-in, like accountLogin. */
+export function signupVerify({ token, code }) {
+  return request('/zbs/v1/signup/verify', { method: 'POST', auth: false, body: { token, code, client: 'app' } });
+}
+
+/** { status: pending | active | declined, note, deletes, role, setup: { items, priced, cashiers, managers } } */
+export function getBar() {
+  return request('/zbs/v1/bar');
+}
+
 // --- zbs/v1: bar settings ---
 
 export function getSettings() {

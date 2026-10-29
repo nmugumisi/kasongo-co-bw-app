@@ -11,6 +11,7 @@ import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
 import { IconUser, IconOut, IconNext, IconChat, IconAi } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
+import PendingHome from '../components/PendingHome';
 
 function todayIso() {
   const d = new Date();
@@ -22,6 +23,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
   const { user, settings, logOut, canManage } = useAuth();
+  // A bar waiting for approval (or declined) gets the setup screen instead of sheets.
+  const pending = !!settings.bar_status && settings.bar_status !== 'active';
   const isOnline = useNetworkStatus();
   const today = todayIso();
 
@@ -51,8 +54,8 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      if (!pending) load(); // a pending bar has no sheets yet (the server would refuse)
+    }, [load, pending])
   );
 
   async function openSheetFor(dateStr) {
@@ -87,7 +90,7 @@ export default function HomeScreen() {
             {user?.name}
           </Text>
         </View>
-        {canManage ? (
+        {canManage && !pending ? (
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Ask')} accessibilityLabel="Ask AI">
             <IconChat size={20} color={c.text} />
           </TouchableOpacity>
@@ -101,6 +104,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {pending ? (
+        <PendingHome status={settings.bar_status} bottom={insets.bottom + 24} />
+      ) : (
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: insets.bottom + 24 }]}>
         {!isOnline ? (
           <View style={styles.offlineBanner}>
@@ -212,6 +218,7 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+      )}
     </View>
   );
 }
