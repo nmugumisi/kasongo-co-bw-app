@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getCredentials } from '../utils/auth';
-import { getActiveBar } from '../utils/activeBar';
+import { getActiveBar, getActiveView } from '../utils/activeBar';
 
 const BASE_URL = 'https://ghetto.co.bw/wp-json';
 
@@ -49,7 +49,8 @@ async function request(path, { method = 'GET', body, auth = true, query, timeout
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     Object.assign(headers, await authHeader());
-    if (getActiveBar()) headers['X-ZBS-Bar'] = String(getActiveBar());
+    if (getActiveView()) headers['X-ZBS-View'] = String(getActiveView());
+    else if (getActiveBar()) headers['X-ZBS-Bar'] = String(getActiveBar());
   }
 
   const controller = new AbortController();
@@ -106,6 +107,31 @@ export function getBars() {
 /** Returns { bar, role, manage, capture, settings, bars } for the bar switched to. */
 export function switchBar(bar) {
   return request('/zbs/v1/bars/switch', { method: 'POST', body: { bar } });
+}
+
+// --- zbs/v1: Verifiers (platform staff): bars waiting for approval, and support "View as" ---
+
+export function getPlatformBars(status) {
+  return request('/zbs/v1/platform/bars', { query: { status } });
+}
+
+/** approve: true, or false with a reason (emailed to the owner). Returns the bar as the platform sees it. */
+export function decideBar(id, approve, reason) {
+  return request(`/zbs/v1/platform/bars/${id}/${approve ? 'approve' : 'decline'}`, { method: 'POST', body: approve ? {} : { reason } });
+}
+
+/** Read-only, up to an hour; the reason goes in the bar's activity log. Returns { bar, name, status, reason, expires_in }. */
+export function startSupportView(id, reason) {
+  return request(`/zbs/v1/platform/bars/${id}/view`, { method: 'POST', body: { reason } });
+}
+
+/** The live support view, or { bar: 0 }. */
+export function getSupportView() {
+  return request('/zbs/v1/platform/view');
+}
+
+export function endSupportView() {
+  return request('/zbs/v1/platform/view', { method: 'DELETE' });
 }
 
 // --- zbs/v1: sign-up (no account yet) and the bar's own status ---

@@ -13,7 +13,7 @@ import { makeStyles } from './ManagersSection';
 /** Phones and browsers linked to this bar, on Settings › Staff. Linking uses a one-time code or a QR from here. */
 export default function DevicesSection() {
   const c = useZbsColors();
-  const { settings } = useAuth();
+  const { settings, readOnly } = useAuth();
   const live = !settings.bar_status || settings.bar_status === 'active';
   const [data, setData] = useState(null); // { devices, required }
   const [panelId, setPanelId] = useState(undefined); // undefined=closed, number=details
@@ -59,9 +59,11 @@ export default function DevicesSection() {
   return (
     <View>
       <Text style={[styles.sectionH, { marginTop: 30 }]}>Devices{data ? ` · ${data.devices.length}` : ''}</Text>
-      <TouchableOpacity style={[styles.inviteBtn, !live && { opacity: 0.5 }]} onPress={() => setLinking(true)} disabled={!live}>
-        <Text style={styles.inviteBtnText}>+ Link a device</Text>
-      </TouchableOpacity>
+      {readOnly ? null : (
+        <TouchableOpacity style={[styles.inviteBtn, !live && { opacity: 0.5 }]} onPress={() => setLinking(true)} disabled={!live}>
+          <Text style={styles.inviteBtnText}>+ Link a device</Text>
+        </TouchableOpacity>
+      )}
       <Text style={styles.hint}>
         {live
           ? 'Cashiers sign in with their passcode on a linked phone, tablet or browser. Linking takes a one-time code or QR from here.'
@@ -73,7 +75,7 @@ export default function DevicesSection() {
           <Switch
             value={!!data.required}
             onValueChange={toggleRequired}
-            disabled={saving}
+            disabled={saving || readOnly}
             trackColor={{ true: c.accent, false: c.card2 }}
             thumbColor={Platform.OS === 'android' ? (data.required ? c.accentInk : c.muted) : undefined}
           />
@@ -116,6 +118,7 @@ export default function DevicesSection() {
 
 function DeviceModal({ visible, device, onClose, onChanged }) {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const cushion = useBottomCushion(24);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -183,6 +186,8 @@ function DeviceModal({ visible, device, onClose, onChanged }) {
             {device.linked_by ? ` with a ${device.method === 'qr' ? 'QR code' : 'code'} from ${device.linked_by}` : ''}
             {device.last_used ? ` · last used ${device.last_used}` : ''}
           </Text>
+          {readOnly ? null : (
+          <>
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Name</Text>
           <TextInput style={styles.input} value={name} onChangeText={setName} maxLength={60} placeholderTextColor={c.muted} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -194,6 +199,8 @@ function DeviceModal({ visible, device, onClose, onChanged }) {
               <Text style={[styles.panelBtnText, { color: c.neg }]}>Unlink</Text>
             </TouchableOpacity>
           </View>
+          </>
+          )}
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>

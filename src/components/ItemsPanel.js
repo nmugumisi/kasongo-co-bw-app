@@ -12,7 +12,7 @@ import SuggestedItems from './SuggestedItems';
 export default function ItemsPanel() {
   const c = useZbsColors();
   const cushion = useBottomCushion(32);
-  const { settings } = useAuth();
+  const { settings, readOnly } = useAuth();
   const [items, setItems] = useState(null);
   const [q, setQ] = useState('');
   const [panel, setPanel] = useState(undefined); // undefined = closed, null = new, number = edit id
@@ -68,10 +68,14 @@ export default function ItemsPanel() {
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]} keyboardShouldPersistTaps="handled">
-        <SuggestedItems onAdded={load} />
-        <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanel(null)}>
-          <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add item</Text>
-        </TouchableOpacity>
+        {readOnly ? null : (
+          <>
+            <SuggestedItems onAdded={load} />
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanel(null)}>
+              <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add item</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={styles.searchBox}>
           <IconSearch size={18} color={c.muted} />
@@ -141,6 +145,7 @@ export default function ItemsPanel() {
 
 function ItemModal({ visible, item, groups, defaultGroup, showValues, currency, onClose, onSaved, onDeleted }) {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const cushion = useBottomCushion(32);
   const styles = makeStyles(c);
   const [name, setName] = useState('');
@@ -265,11 +270,13 @@ function ItemModal({ visible, item, groups, defaultGroup, showValues, currency, 
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: c.accent }]} onPress={handleSave} disabled={busy}>
-            <Text style={[styles.saveBtnText, { color: c.accentInk }]}>{busy ? 'Saving…' : item ? 'Save' : 'Add item'}</Text>
-          </TouchableOpacity>
+          {readOnly ? null : (
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: c.accent }]} onPress={handleSave} disabled={busy}>
+              <Text style={[styles.saveBtnText, { color: c.accentInk }]}>{busy ? 'Saving…' : item ? 'Save' : 'Add item'}</Text>
+            </TouchableOpacity>
+          )}
 
-          {item ? (
+          {item && !readOnly ? (
             <View style={styles.panelActions}>
               {item.in_use ? (
                 <Text style={styles.hint}>On past sheets, so it can't be deleted. Switch it off instead.</Text>

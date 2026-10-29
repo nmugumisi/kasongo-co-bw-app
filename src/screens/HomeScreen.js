@@ -9,7 +9,7 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
-import { IconUser, IconOut, IconNext, IconChat, IconAi, IconDown } from '../theme/zbsIcons';
+import { IconUser, IconOut, IconNext, IconChat, IconAi, IconDown, IconBars } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
 import PendingHome from '../components/PendingHome';
 import BarSwitcher from '../components/BarSwitcher';
@@ -23,7 +23,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { user, settings, logOut, canManage, canSwitchBar } = useAuth();
+  const { user, settings, logOut, canManage, canSwitchBar, readOnly, isVerifier } = useAuth();
   const [switching, setSwitching] = useState(false);
   // A bar waiting for approval (or declined) gets the setup screen instead of sheets.
   const pending = !!settings.bar_status && settings.bar_status !== 'active';
@@ -101,7 +101,12 @@ export default function HomeScreen() {
             {user?.name}
           </Text>
         </TouchableOpacity>
-        {canManage && !pending ? (
+        {isVerifier && !readOnly ? (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Platform')} accessibilityLabel="Bars">
+            <IconBars size={20} color={c.text} />
+          </TouchableOpacity>
+        ) : null}
+        {canManage && !pending && !readOnly ? (
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Ask')} accessibilityLabel="Ask AI">
             <IconChat size={20} color={c.text} />
           </TouchableOpacity>
@@ -138,7 +143,7 @@ export default function HomeScreen() {
               </View>
             </LinearGradient>
           </TouchableOpacity>
-        ) : sheets ? (
+        ) : sheets && !readOnly ? (
           <TouchableOpacity onPress={() => openSheetFor(today)} activeOpacity={0.9} disabled={opening}>
             <LinearGradient colors={[c.accent, '#ff8a3d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
               <Text style={styles.heroEyebrow}>No sheet yet today</Text>
@@ -151,7 +156,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
 
-        {canManage ? (
+        {canManage && !readOnly ? (
           <TouchableOpacity style={styles.askRow} onPress={() => navigation.navigate('Ask')} activeOpacity={0.8}>
             <View style={styles.askIcon}>
               <IconAi size={18} color={c.accent} />
@@ -166,6 +171,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
 
+        {/* Opening a date starts its sheet if there isn't one: not while viewing as support. */}
+        {readOnly ? null : (
         <View style={styles.card}>
           <Text style={styles.fieldLabel}>Date</Text>
           <TouchableOpacity style={styles.dateInput} onPress={() => setShowPicker(true)}>
@@ -193,6 +200,7 @@ export default function HomeScreen() {
             <Text style={styles.hint}>Opens the sheet for that date, or starts it if nobody has yet.</Text>
           )}
         </View>
+        )}
 
         <Text style={styles.sectionH}>Recent sheets</Text>
         {!sheets ? (

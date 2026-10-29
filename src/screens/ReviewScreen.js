@@ -18,7 +18,7 @@ export default function ReviewScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { settings, canManage } = useAuth();
+  const { settings, canManage, readOnly } = useAuth();
   const isOnline = useNetworkStatus();
   const sheetId = route.params?.sheetId;
 
@@ -209,7 +209,7 @@ export default function ReviewScreen() {
           )}
         </View>
 
-        {canManage ? <AiSummaryCard sheetId={sheetId} date={sheet.date} version={sheet.updated_at} /> : null}
+        {canManage && !readOnly ? <AiSummaryCard sheetId={sheetId} date={sheet.date} version={sheet.updated_at} /> : null}
 
         {todo.length ? (
           <>
@@ -261,11 +261,13 @@ export default function ReviewScreen() {
             ))}
           </View>
         )}
-        <TouchableOpacity style={styles.addNoteBtn} onPress={() => setNotesVisible(true)}>
-          <Text style={styles.addNoteBtnText}>+ Add a note</Text>
-        </TouchableOpacity>
+        {readOnly ? null : (
+          <TouchableOpacity style={styles.addNoteBtn} onPress={() => setNotesVisible(true)}>
+            <Text style={styles.addNoteBtnText}>+ Add a note</Text>
+          </TouchableOpacity>
+        )}
 
-        {canManage ? (
+        {canManage && !readOnly ? (
           <>
             <View style={styles.dl}>
               {[
@@ -283,7 +285,7 @@ export default function ReviewScreen() {
         ) : null}
 
         <View style={styles.actions}>
-          {!isClosed ? (
+          {readOnly ? null : !isClosed ? (
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: c.accent }, (todo.length || !isOnline) && styles.disabledBtn]}
               onPress={handleClose}
@@ -310,6 +312,7 @@ export default function ReviewScreen() {
         onClose={() => setNotesVisible(false)}
         onAdd={handleAddNote}
         onDelete={handleDeleteNote}
+        readOnly={readOnly}
       />
     </View>
   );

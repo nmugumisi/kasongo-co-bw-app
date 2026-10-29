@@ -3,9 +3,9 @@ import { Appearance, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { getCredentials, saveCredentials, saveBar, clearCredentials, getBiometricEnabled, setBiometricEnabled as persistBiometricEnabled } from './auth';
-import { getSettings, getBars, switchBar as apiSwitchBar } from '../services/api';
-import { getJSON, setJSON, settingsCacheKey, barsCacheKey } from './offlineStore';
-import { getActiveBar, setActiveBar } from './activeBar';
+import { getSettings, getBars, switchBar as apiSwitchBar, startSupportView, getSupportView, endSupportView } from '../services/api';
+import { getJSON, setJSON, settingsCacheKey, barsCacheKey, clearViewCaches } from './offlineStore';
+import { getActiveBar, setActiveBar, setActiveView } from './activeBar';
 
 const AuthContext = createContext(null);
 
@@ -27,6 +27,8 @@ export function AuthProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [bars, setBars] = useState([]); // [{ id, name, slug, status, role }]
   const [barId, setBarId] = useState(0);
+  // A Verifier viewing a bar as support: { bar, name, reason, endsAt }. Read-only everywhere.
+  const [viewAs, setViewAs] = useState(null);
   const [theme, setTheme] = useState('dark');
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
@@ -90,6 +92,51 @@ export function AuthProvider({ children }) {
     setBarId(r.bar);
   }, []);
 
+  /** Support "View as": the server logs it in the bar's activity log; the app shows that bar read-only. */
+  const enterView = useCallback(async (v) => {
+    const endsAt = Date.now() + v.expires_in * 1000;
+    setActiveView(v.bar); // from here on, requests ask for that bar (read-only)
+    let st = { bar_name: v.name, bar_status: v.status };
+    try {
+      st = await getSettings();
+    } catch {
+      // the name and status from the server's answer will do
+    }
+    // The bar's profile first, then the screens, so Home opens as that bar.
+    setSettings({ ...DEFAULT_SETTINGS, ...st });
+    setViewAs({ bar: v.bar, name: v.name, reason: v.reason, endsAt });
+  }, []);
+
+  const startView = useCallback(
+    async (id, reason) => {
+      const v = await startSupportView(id, reason);
+      await enterView(v);
+    },
+    [enterView]
+  );
+
+  const endView = useCallback(async () => {
+    try {
+      await endSupportView();
+    } catch {
+      // it ends on its own after the hour; the server stops honouring it either way
+    }
+    setActiveView(0);
+    setViewAs(null);
+    clearViewCaches();
+    refreshSettings();
+  }, [refreshSettings]);
+
+  // A Verifier reopening the app mid-view carries on where they were.
+  const refreshView = useCallback(async () => {
+    try {
+      const v = await getSupportView();
+      if (v?.bar) await enterView(v);
+    } catch {
+      // offline: back on the Bars screen; the view can be continued from there
+    }
+  }, [enterView]);
+
   // Which bars this account works at. If the bar this phone was on is no longer one of them
   // (removed by its owner), move to where the server would open it instead.
   const refreshBars = useCallback(async () => {
@@ -120,16 +167,19 @@ export function AuthProvider({ children }) {
         const [cached, cachedBars] = await Promise.all([getJSON(settingsCacheKey()), getJSON(barsCacheKey())]);
         if (cached) setSettings({ ...DEFAULT_SETTINGS, ...cached });
         if (cachedBars) setBars(cachedBars);
-        refreshSettings();
-        refreshBars();
+        if (creds.verify) refreshView(); // carry on a support view the app was closed during
+        if (creds.bar || !creds.verify) {
+          refreshSettings();
+          refreshBars();
+        }
 
         const bioOn = await getBiometricEnabled();
         setBiometricEnabledState(bioOn);
-        if (bioOn && creds.manage) setLocked(true); // require a fresh unlock every cold start, not just once
+        if (bioOn && (creds.manage || creds.verify)) setLocked(true); // require a fresh unlock every cold start, not just once
       }
       setLoading(false);
     });
-  }, [refreshSettings, refreshBars]);
+  }, [refreshSettings, refreshBars, refreshView]);
 
   // Returning to the app from the background re-locks it, same as a cold start — otherwise
   // biometric gating would only ever matter once, which defeats the point of "protect an
@@ -137,7 +187,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       appState.current = next;
-      if (next === 'background' && !promptOpen.current && biometricEnabled && user?.manage) {
+      if (next === 'background' && !promptOpen.current && biometricEnabled && (user?.manage || user?.verify)) {
         setLocked(true);
       }
     });
@@ -187,6 +237,7 @@ export function AuthProvider({ children }) {
   );
 
   const logOut = useCallback(async () => {
+    if (viewAs) await endView();
     await clearCredentials();
     setActiveBar(0);
     setBarId(0);
@@ -196,7 +247,7 @@ export function AuthProvider({ children }) {
     setSettings(DEFAULT_SETTINGS);
     setBiometricEnabledState(false);
     setLocked(false);
-  }, []);
+  }, [viewAs, endView]);
 
   return (
     <AuthContext.Provider
@@ -204,7 +255,13 @@ export function AuthProvider({ children }) {
         user,
         loading,
         isLoggedIn: !!user,
-        canManage: !!user?.manage,
+        // Viewing as support shows a manager's screens; readOnly hides anything that would change the bar.
+        canManage: !!user?.manage || !!viewAs,
+        isVerifier: !!user?.verify,
+        viewAs,
+        readOnly: !!viewAs,
+        startView,
+        endView,
         settings,
         refreshSettings,
         bars,

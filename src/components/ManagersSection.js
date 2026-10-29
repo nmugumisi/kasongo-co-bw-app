@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Modal, Alert, ActivityIndicato
 import { useFocusEffect } from '@react-navigation/native';
 import { getManagers, inviteManager, resendManagerInvite, removeManager } from '../services/api';
 import { useZbsColors } from '../theme/zbsColors';
+import { useAuth } from '../utils/AuthContext';
 import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 
@@ -11,6 +12,7 @@ const STATUS = { active: 'Active', invited: 'Invite sent', expired: 'Invite expi
 /** Managers list under the cashiers on Settings › Staff. New managers are invited by email and set their own password. */
 export default function ManagersSection() {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const [managers, setManagers] = useState(null);
   const [panelId, setPanelId] = useState(undefined); // undefined=closed, null=invite, number=details
   const styles = makeStyles(c);
@@ -34,9 +36,11 @@ export default function ManagersSection() {
   return (
     <View>
       <Text style={[styles.sectionH, { marginTop: 30 }]}>Managers{managers ? ` · ${managers.length}` : ''}</Text>
-      <TouchableOpacity style={styles.inviteBtn} onPress={() => setPanelId(null)}>
-        <Text style={styles.inviteBtnText}>+ Invite manager</Text>
-      </TouchableOpacity>
+      {readOnly ? null : (
+        <TouchableOpacity style={styles.inviteBtn} onPress={() => setPanelId(null)}>
+          <Text style={styles.inviteBtnText}>+ Invite manager</Text>
+        </TouchableOpacity>
+      )}
       <Text style={styles.hint}>Managers get an email to set their own password, then use "Manager or admin sign-in".</Text>
 
       {!managers ? (
@@ -74,6 +78,7 @@ export default function ManagersSection() {
 
 function ManagerModal({ visible, manager, onClose, onChanged }) {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const cushion = useBottomCushion(24);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -164,6 +169,7 @@ function ManagerModal({ visible, manager, onClose, onChanged }) {
                 {manager.status === 'active' ? (manager.last ? ` · last in ${manager.last}` : ' · never signed in') : ` · ${manager.invited}`}
               </Text>
               {error ? <Text style={styles.error}>{error}</Text> : null}
+              {readOnly ? null : (
               <View style={styles.panelActions}>
                 {manager.status !== 'active' ? (
                   <TouchableOpacity style={[styles.saveBtn, { backgroundColor: c.accent, marginTop: 0 }]} onPress={handleResend} disabled={busy}>
@@ -176,6 +182,7 @@ function ManagerModal({ visible, manager, onClose, onChanged }) {
                   </TouchableOpacity>
                 ) : null}
               </View>
+              )}
             </>
           ) : (
             <>

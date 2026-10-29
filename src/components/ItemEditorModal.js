@@ -29,6 +29,7 @@ export default function ItemEditorModal({
   startIndex,
   mode,
   isClosed,
+  readOnly, // support viewing the bar: look, don't touch
   prevSheet,
   onClose,
   onChangeField,
@@ -247,6 +248,8 @@ export default function ItemEditorModal({
               })}
             </View>
 
+            {readOnly ? null : (
+            <>
             <View style={[styles.display, { borderColor: c.accent }, isAdd && { }]}>
               <Text style={styles.displaySmall}>
                 {isAdd
@@ -280,6 +283,8 @@ export default function ItemEditorModal({
               nextLabel={nextLabel}
               isLog={isAdd && parseNum(buf) > 0}
             />
+            </>
+            )}
 
             {isAdd ? (
               <View style={styles.hist}>
@@ -302,7 +307,7 @@ export default function ItemEditorModal({
                           {r.note ? ` · ${r.note}` : ''}
                           {r.voided ? ` · voided${r.voided_by ? ` by ${r.voided_by}` : ''}` : ''}
                         </Text>
-                        {!r.voided && r.can_void ? (
+                        {!r.voided && r.can_void && !readOnly ? (
                           <TouchableOpacity style={styles.voidBtn} onPress={() => handleVoid(r.id, r.client_id)} disabled={busy}>
                             <IconClose size={14} color={c.muted} />
                           </TouchableOpacity>

@@ -17,6 +17,9 @@ export const DARK = {
   posBg: 'rgba(79,209,139,0.12)',
   warn: '#ffcc66',
   warnBg: 'rgba(255,204,102,0.12)',
+  // Support viewing a bar (the web app's banner)
+  view: '#8f7ff0',
+  viewBar: '#3b2a8a',
 };
 
 export const LIGHT = {
@@ -35,6 +38,8 @@ export const LIGHT = {
   posBg: 'rgba(20,138,79,0.09)',
   warn: '#a86b00',
   warnBg: 'rgba(224,160,32,0.14)',
+  view: '#5b47d6',
+  viewBar: '#3b2a8a',
 };
 
 export function colorsFor(theme) {

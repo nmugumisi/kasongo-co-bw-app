@@ -7,7 +7,7 @@ import { useBottomCushion } from '../theme/layout';
 import BiometricToggle from './BiometricToggle';
 
 export default function BarSettingsPanel() {
-  const { settings, refreshSettings } = useAuth();
+  const { settings, refreshSettings, readOnly } = useAuth();
   const c = useZbsColors();
   const cushion = useBottomCushion(24);
   const [barName, setBarName] = useState(settings.bar_name);
@@ -37,7 +37,7 @@ export default function BarSettingsPanel() {
       <Text style={styles.hint}>Shown at the top of the app, on the sign-in keypad and on every export.</Text>
 
       <View style={styles.switchRow}>
-        <Switch value={showValues} onValueChange={setShowValues} trackColor={{ true: c.accent, false: c.card2 }} thumbColor={c.muted} />
+        <Switch value={showValues} onValueChange={setShowValues} disabled={readOnly} trackColor={{ true: c.accent, false: c.card2 }} thumbColor={c.muted} />
         <Text style={styles.switchLabel}>Show money values (prices)</Text>
       </View>
       <Text style={styles.hint}>Off: everything works in quantities only. On: adds unit prices and shortage values.</Text>
@@ -51,11 +51,16 @@ export default function BarSettingsPanel() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TouchableOpacity style={[styles.button, { backgroundColor: c.accent }]} onPress={handleSave} disabled={saving}>
-        <Text style={[styles.buttonText, { color: c.accentInk }]}>{saving ? 'Saving…' : 'Save bar profile'}</Text>
-      </TouchableOpacity>
+      {/* Viewing as support: nothing to save, and Face ID here would be the Verifier's own setting. */}
+      {readOnly ? null : (
+        <>
+          <TouchableOpacity style={[styles.button, { backgroundColor: c.accent }]} onPress={handleSave} disabled={saving}>
+            <Text style={[styles.buttonText, { color: c.accentInk }]}>{saving ? 'Saving…' : 'Save bar profile'}</Text>
+          </TouchableOpacity>
 
-      <BiometricToggle />
+          <BiometricToggle />
+        </>
+      )}
     </ScrollView>
   );
 }

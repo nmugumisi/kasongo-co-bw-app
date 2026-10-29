@@ -4,7 +4,7 @@ import { useZbsColors } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 
-export default function NotesModal({ visible, notes, onClose, onAdd, onDelete }) {
+export default function NotesModal({ visible, notes, onClose, onAdd, onDelete, readOnly }) {
   const c = useZbsColors();
   const cushion = useBottomCushion(20);
   const [body, setBody] = useState('');
@@ -34,6 +34,8 @@ export default function NotesModal({ visible, notes, onClose, onAdd, onDelete })
             </TouchableOpacity>
           </View>
 
+          {readOnly ? null : (
+            <>
           <TextInput
             style={styles.input}
             placeholder="Breakages, comps, fridge problems, anything the manager should know"
@@ -45,6 +47,8 @@ export default function NotesModal({ visible, notes, onClose, onAdd, onDelete })
           <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={handleAdd} disabled={submitting}>
             <Text style={[styles.addBtnText, { color: c.accentInk }]}>{submitting ? 'Adding…' : 'Add note'}</Text>
           </TouchableOpacity>
+            </>
+          )}
 
           <ScrollView style={styles.list}>
             {!notes.length ? (
@@ -61,7 +65,7 @@ export default function NotesModal({ visible, notes, onClose, onAdd, onDelete })
                       </Text>
                       <Text style={styles.noteBody}>{n.body}</Text>
                     </View>
-                    {n.can_delete ? (
+                    {n.can_delete && !readOnly ? (
                       <TouchableOpacity onPress={() => onDelete(n.id)} style={styles.delBtn}>
                         <IconClose size={14} color={c.muted} />
                       </TouchableOpacity>

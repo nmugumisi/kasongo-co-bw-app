@@ -41,7 +41,7 @@ export default function SheetScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const c = useZbsColors();
-  const { user, settings } = useAuth();
+  const { user, settings, readOnly } = useAuth();
   const isOnline = useNetworkStatus();
   const sheetId = route.params?.sheetId;
   const username = user?.username;
@@ -442,7 +442,7 @@ export default function SheetScreen() {
           ) : null}
         </TouchableOpacity>
         <View style={styles.saveIndicator}>
-          {isClosed ? (
+          {isClosed || readOnly ? (
             <>
               <IconLock size={13} color={c.muted} />
               <Text style={styles.saveText}>Locked</Text>
@@ -521,6 +521,10 @@ export default function SheetScreen() {
           <Text style={[styles.bannerText, { color: c.warn }]}>
             You're offline. {hasPending() ? "Entries are saved on this device and will sync once you're back online." : 'Showing the last saved copy of this sheet.'}
           </Text>
+        </View>
+      ) : readOnly ? (
+        <View style={[styles.banner, { backgroundColor: `${c.view}24` }]}>
+          <Text style={[styles.bannerText, { color: c.text }]}>{isClosed ? 'Closed sheet. ' : 'Open sheet. '}Read-only while you view as support.</Text>
         </View>
       ) : isClosed ? (
         <View style={[styles.banner, { backgroundColor: `${c.accent}24` }]}>
@@ -626,7 +630,7 @@ export default function SheetScreen() {
           style={[styles.primaryBtn, { backgroundColor: c.accent }]}
           onPress={() => navigation.navigate('Review', { sheetId })}
         >
-          <Text style={[styles.primaryBtnText, { color: c.accentInk }]}>{isClosed ? 'Summary' : 'Review & close'}</Text>
+          <Text style={[styles.primaryBtnText, { color: c.accentInk }]}>{isClosed || readOnly ? 'Summary' : 'Review & close'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -636,6 +640,7 @@ export default function SheetScreen() {
         startIndex={editorIndex}
         mode={mode}
         isClosed={isClosed}
+        readOnly={readOnly}
         prevSheet={prev}
         onClose={() => {
           setEditorItemId(null);
@@ -652,6 +657,7 @@ export default function SheetScreen() {
         onClose={() => setNotesVisible(false)}
         onAdd={handleAddNote}
         onDelete={handleDeleteNote}
+        readOnly={readOnly}
       />
     </View>
   );

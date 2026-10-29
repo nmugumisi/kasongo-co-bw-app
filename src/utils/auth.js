@@ -6,12 +6,14 @@ const NAME_KEY = 'kasongo_display_name';
 const MANAGE_KEY = 'kasongo_can_manage';
 const BIOMETRIC_KEY = 'kasongo_biometric_enabled';
 const BAR_KEY = 'kasongo_bar';
+const VERIFY_KEY = 'kasongo_verify';
 
-export async function saveCredentials({ username, application_password, name, manage, bar }) {
+export async function saveCredentials({ username, application_password, name, manage, bar, verify }) {
   await SecureStore.setItemAsync(USERNAME_KEY, username ?? '');
   await SecureStore.setItemAsync(PASSWORD_KEY, application_password ?? '');
   await SecureStore.setItemAsync(NAME_KEY, name ?? '');
   await SecureStore.setItemAsync(MANAGE_KEY, manage ? '1' : '0');
+  await SecureStore.setItemAsync(VERIFY_KEY, verify ? '1' : '0');
   // Sign-up answers with the bar's details; the sign-ins with its id.
   await SecureStore.setItemAsync(BAR_KEY, String((bar && typeof bar === 'object' ? bar.id : bar) || 0));
 }
@@ -23,15 +25,16 @@ export async function saveBar({ bar, manage }) {
 }
 
 export async function getCredentials() {
-  const [username, application_password, name, manage, bar] = await Promise.all([
+  const [username, application_password, name, manage, bar, verify] = await Promise.all([
     SecureStore.getItemAsync(USERNAME_KEY),
     SecureStore.getItemAsync(PASSWORD_KEY),
     SecureStore.getItemAsync(NAME_KEY),
     SecureStore.getItemAsync(MANAGE_KEY),
     SecureStore.getItemAsync(BAR_KEY),
+    SecureStore.getItemAsync(VERIFY_KEY),
   ]);
   if (!username || !application_password) return null;
-  return { username, application_password, name, manage: manage === '1', bar: parseInt(bar || '0', 10) || 0 };
+  return { username, application_password, name, manage: manage === '1', bar: parseInt(bar || '0', 10) || 0, verify: verify === '1' };
 }
 
 const DEVICE_ID_KEY = 'kasongo_device_id';
@@ -88,6 +91,7 @@ export async function clearCredentials() {
     SecureStore.deleteItemAsync(MANAGE_KEY),
     SecureStore.deleteItemAsync(BIOMETRIC_KEY),
     SecureStore.deleteItemAsync(BAR_KEY),
+    SecureStore.deleteItemAsync(VERIFY_KEY),
   ]);
 }
 

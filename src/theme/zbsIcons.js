@@ -23,4 +23,6 @@ export {
   Globe as IconGlobe,
   Check as IconCheck,
   ChevronDown as IconDown,
+  Eye as IconEye,
+  Building2 as IconBars,
 } from 'lucide-react-native';

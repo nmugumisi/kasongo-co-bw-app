@@ -39,7 +39,7 @@ const PRESETS = [
 export default function ReportsPanel() {
   const c = useZbsColors();
   const cushion = useBottomCushion(32);
-  const { settings } = useAuth();
+  const { settings, readOnly } = useAuth();
   const V = settings.show_values;
   const [[from, to], setRange] = useState(() => range('month'));
   const [report, setReport] = useState(null);
@@ -186,6 +186,7 @@ export default function ReportsPanel() {
             </View>
           )}
 
+          {readOnly ? null : (
           <View style={styles.dl}>
             {[
               ['xlsx', 'Excel', IconXls],
@@ -197,6 +198,7 @@ export default function ReportsPanel() {
               </TouchableOpacity>
             ))}
           </View>
+          )}
           {dlError ? <Text style={styles.error}>{dlError}</Text> : null}
         </>
       )}

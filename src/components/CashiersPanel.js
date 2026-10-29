@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Acti
 import { useFocusEffect } from '@react-navigation/native';
 import { getCashiers, createCashier, updateCashier, deleteCashier } from '../services/api';
 import { useZbsColors } from '../theme/zbsColors';
+import { useAuth } from '../utils/AuthContext';
 import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
 import ManagersSection from './ManagersSection';
@@ -10,6 +11,7 @@ import DevicesSection from './DevicesSection';
 
 export default function CashiersPanel() {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const cushion = useBottomCushion(24);
   const [cashiers, setCashiers] = useState(null);
   const [panelId, setPanelId] = useState(undefined); // undefined=closed, null=new, number=edit
@@ -34,9 +36,11 @@ export default function CashiersPanel() {
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={[styles.main, { paddingBottom: cushion }]}>
-        <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanelId(null)}>
-          <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add cashier</Text>
-        </TouchableOpacity>
+        {readOnly ? null : (
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: c.accent }]} onPress={() => setPanelId(null)}>
+            <Text style={[styles.addBtnText, { color: c.accentInk }]}>+ Add cashier</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.hint}>Cashiers sign in with a 4-digit passcode only. Each passcode must be different.</Text>
 
         <Text style={styles.sectionH}>Cashiers{cashiers ? ` · ${cashiers.length}` : ''}</Text>
@@ -79,6 +83,7 @@ export default function CashiersPanel() {
 
 function CashierModal({ visible, cashier, onClose, onSaved }) {
   const c = useZbsColors();
+  const { readOnly } = useAuth();
   const cushion = useBottomCushion(24);
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
@@ -194,13 +199,15 @@ function CashierModal({ visible, cashier, onClose, onSaved }) {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: c.accent }]} onPress={handleSubmit} disabled={submitting}>
-            <Text style={[styles.saveBtnText, { color: c.accentInk }]}>
-              {submitting ? 'Saving…' : cashier ? 'Change passcode' : 'Add cashier'}
-            </Text>
-          </TouchableOpacity>
+          {readOnly ? null : (
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: c.accent }]} onPress={handleSubmit} disabled={submitting}>
+              <Text style={[styles.saveBtnText, { color: c.accentInk }]}>
+                {submitting ? 'Saving…' : cashier ? 'Change passcode' : 'Add cashier'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          {cashier ? (
+          {cashier && !readOnly ? (
             <View style={styles.panelActions}>
               <TouchableOpacity style={styles.panelBtn} onPress={handleToggle}>
                 <Text style={styles.panelBtnText}>{cashier.disabled ? `Enable ${cashier.name}` : `Disable ${cashier.name}`}</Text>
