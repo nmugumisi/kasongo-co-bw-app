@@ -11,7 +11,7 @@ import AccountPanel from '../components/AccountPanel';
 import ItemsPanel from '../components/ItemsPanel';
 import ReportsPanel from '../components/ReportsPanel';
 
-const SUB = { bar: 'Bar profile', cashiers: 'Cashier accounts', items: 'Stock items', reports: 'Variance report', account: 'Your account' };
+const SUB = { bar: 'Bar profile', cashiers: 'Cashiers & managers', items: 'Stock items', reports: 'Variance report', account: 'Your account' };
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -24,7 +24,7 @@ export default function SettingsScreen() {
       canManage
         ? [
             { key: 'bar', label: 'Bar' },
-            { key: 'cashiers', label: 'Cashiers' },
+            { key: 'cashiers', label: 'Staff' },
             { key: 'items', label: 'Items' },
             { key: 'reports', label: 'Reports' },
           ]

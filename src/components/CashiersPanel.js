@@ -5,6 +5,7 @@ import { getCashiers, createCashier, updateCashier, deleteCashier } from '../ser
 import { useZbsColors } from '../theme/zbsColors';
 import { useBottomCushion } from '../theme/layout';
 import { IconClose } from '../theme/zbsIcons';
+import ManagersSection from './ManagersSection';
 
 export default function CashiersPanel() {
   const c = useZbsColors();
@@ -60,6 +61,8 @@ export default function CashiersPanel() {
             ))}
           </View>
         )}
+
+        <ManagersSection />
       </ScrollView>
 
       <CashierModal

@@ -169,6 +169,24 @@ export function deleteCashier(id) {
   return request(`/zbs/v1/cashiers/${id}`, { method: 'DELETE' });
 }
 
+// --- zbs/v1: managers (managers only). New managers get an email invite to set their own password. ---
+
+export function getManagers() {
+  return request('/zbs/v1/managers');
+}
+
+export function inviteManager({ name, email }) {
+  return request('/zbs/v1/managers', { method: 'POST', body: { name, email } });
+}
+
+export function resendManagerInvite(id) {
+  return request(`/zbs/v1/managers/${id}/resend`, { method: 'POST' });
+}
+
+export function removeManager(id) {
+  return request(`/zbs/v1/managers/${id}`, { method: 'DELETE' });
+}
+
 // --- zbs/v1: stock items + reports (managers only) ---
 
 export function getItems() {
