@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   barChipText: { color: c.text, fontSize: 14, fontWeight: '600' },
   barChipTextOn: { color: c.accentInk },
   linkDev: { marginTop: 22, paddingVertical: 8, paddingHorizontal: 12 },
-  linkDevText: { color: c.muted, fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
+  linkDevText: { color: c.muted, fontSize: 14, fontWeight: '600' },
   switchLink: { marginTop: 28, paddingVertical: 8, paddingHorizontal: 12 },
   switchLinkTight: { marginTop: 4, paddingVertical: 8, paddingHorizontal: 12 },
   switchLinkText: { color: c.muted, fontSize: 14, fontWeight: '600' },
