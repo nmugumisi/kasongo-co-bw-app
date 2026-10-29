@@ -187,6 +187,12 @@ export function removeManager(id) {
   return request(`/zbs/v1/managers/${id}`, { method: 'DELETE' });
 }
 
+// --- zbs/v1: activity log (managers only). group: items | staff | sheets | exports | bar ---
+
+export function getActivity({ group, q, page } = {}) {
+  return request('/zbs/v1/activity', { query: { group, q, page, per_page: 40 } });
+}
+
 // --- zbs/v1: stock items + reports (managers only) ---
 
 export function getItems() {

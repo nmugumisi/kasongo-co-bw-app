@@ -10,8 +10,9 @@ import CashiersPanel from '../components/CashiersPanel';
 import AccountPanel from '../components/AccountPanel';
 import ItemsPanel from '../components/ItemsPanel';
 import ReportsPanel from '../components/ReportsPanel';
+import ActivityPanel from '../components/ActivityPanel';
 
-const SUB = { bar: 'Bar profile', cashiers: 'Cashiers & managers', items: 'Stock items', reports: 'Variance report', account: 'Your account' };
+const SUB = { bar: 'Bar profile', cashiers: 'Cashiers & managers', items: 'Stock items', reports: 'Variance report', activity: 'Activity log', account: 'Your account' };
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -27,6 +28,7 @@ export default function SettingsScreen() {
             { key: 'cashiers', label: 'Staff' },
             { key: 'items', label: 'Items' },
             { key: 'reports', label: 'Reports' },
+            { key: 'activity', label: 'Activity' },
           ]
         : [],
     [canManage]
@@ -61,7 +63,9 @@ export default function SettingsScreen() {
               style={[styles.segBtn, tab === t.key && { backgroundColor: c.accent }]}
               onPress={() => setTab(t.key)}
             >
-              <Text style={[styles.segBtnText, { color: tab === t.key ? c.accentInk : c.muted }]}>{t.label}</Text>
+              <Text style={[styles.segBtnText, { color: tab === t.key ? c.accentInk : c.muted }]} numberOfLines={1} adjustsFontSizeToFit>
+                {t.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -75,6 +79,8 @@ export default function SettingsScreen() {
         <ItemsPanel />
       ) : tab === 'reports' ? (
         <ReportsPanel />
+      ) : tab === 'activity' ? (
+        <ActivityPanel />
       ) : (
         <AccountPanel />
       )}
