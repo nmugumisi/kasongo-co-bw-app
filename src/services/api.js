@@ -217,6 +217,30 @@ export function shareSheetExport({ id, date, format }) {
   return shareExport(`/zbs/v1/export/sheet/${id}?format=${format}`, `stock-sheet-${date}.${format}`, format);
 }
 
+// --- zbs/v1: AI assistant (managers only) ---
+
+// The server may run several tool rounds and one retry; give it longer than a normal request.
+const AI_TIMEOUT_MS = 75000;
+
+export function getAiStatus() {
+  return request('/zbs/v1/ai/status');
+}
+
+/** Cached shift brief for a sheet, or { summary: null }. Never calls the AI. */
+export function getSheetSummary(id) {
+  return request(`/zbs/v1/ai/sheets/${id}/summary`);
+}
+
+/** Writes the brief (or returns the cached one if the sheet hasn't changed). */
+export function makeSheetSummary(id, { force } = {}) {
+  return request(`/zbs/v1/ai/sheets/${id}/summary`, { method: 'POST', body: { force: !!force }, timeoutMs: AI_TIMEOUT_MS });
+}
+
+/** messages: [{ role: 'user' | 'assistant', content }], newest last. */
+export function askAi({ messages, sheet_id }) {
+  return request('/zbs/v1/ai/chat', { method: 'POST', body: { messages, sheet_id }, timeoutMs: AI_TIMEOUT_MS });
+}
+
 // --- zbs/v1: account ---
 
 export function requestAccountDeletion({ message } = {}) {

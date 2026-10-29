@@ -11,6 +11,7 @@ import { IconBack, IconXls, IconPdf } from '../theme/zbsIcons';
 import { calc } from '../utils/calc';
 import { fmt, signed, money, niceDate } from '../utils/format';
 import NotesModal from '../components/NotesModal';
+import AiSummaryCard from '../components/AiSummaryCard';
 
 export default function ReviewScreen() {
   const navigation = useNavigation();
@@ -207,6 +208,8 @@ export default function ReviewScreen() {
             </>
           )}
         </View>
+
+        {canManage ? <AiSummaryCard sheetId={sheetId} date={sheet.date} version={sheet.updated_at} /> : null}
 
         {todo.length ? (
           <>

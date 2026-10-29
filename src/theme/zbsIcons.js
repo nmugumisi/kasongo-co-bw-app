@@ -14,4 +14,7 @@ export {
   Lock as IconLock,
   Delete as IconDel,
   Settings as IconCog,
+  Sparkles as IconAi,
+  SendHorizontal as IconSend,
+  RefreshCw as IconRefresh,
 } from 'lucide-react-native';

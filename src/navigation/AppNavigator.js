@@ -12,6 +12,7 @@ import HomeScreen from '../screens/HomeScreen';
 import SheetScreen from '../screens/SheetScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AskScreen from '../screens/AskScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Sheet" component={SheetScreen} />
         <Stack.Screen name="Review" component={ReviewScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Ask" component={AskScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
