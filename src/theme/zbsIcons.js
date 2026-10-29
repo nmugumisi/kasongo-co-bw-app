@@ -14,6 +14,7 @@ export {
   Lock as IconLock,
   Delete as IconDel,
   Settings as IconCog,
+  User as IconUser,
   Sparkles as IconAi,
   MessageCircle as IconChat,
   SendHorizontal as IconSend,

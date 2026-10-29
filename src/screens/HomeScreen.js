@@ -9,7 +9,7 @@ import { useAuth } from '../utils/AuthContext';
 import { useZbsColors } from '../theme/zbsColors';
 import { useNetworkStatus } from '../utils/useNetworkStatus';
 import { getJSON, setJSON, sheetsListCacheKey } from '../utils/offlineStore';
-import { IconCog, IconOut, IconNext, IconChat, IconAi } from '../theme/zbsIcons';
+import { IconUser, IconOut, IconNext, IconChat, IconAi } from '../theme/zbsIcons';
 import { niceDate, people, signed, money } from '../utils/format';
 
 function todayIso() {
@@ -93,7 +93,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-          <IconCog size={20} color={c.text} />
+          <IconUser size={20} color={c.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} disabled={signingOut}>
           <IconOut size={18} color={c.text} />
